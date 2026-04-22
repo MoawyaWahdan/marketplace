@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends, HTTPException, status, Path
+from fastapi import APIRouter, Depends, HTTPException, status, Path, BackgroundTasks
 from sqlmodel import select
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy import and_
@@ -8,6 +8,7 @@ from app.db.database import get_session
 from app.models.listing import ListingDB
 from app.schemas.listing import ListingCreate, ListingPublic, ListingUpdate
 from app.api.deps import UserDep, SessionDep
+import asyncio
 
 router = APIRouter(prefix="/listings", tags=["Listings"])
 
@@ -15,8 +16,8 @@ router = APIRouter(prefix="/listings", tags=["Listings"])
 @router.post(
     "/",
     response_model=ListingPublic,
-    description="Create new listing",
-    summary="The user can use this to create new listing, the listing is part of the seller dashboard",
+    summary="Create new listing",
+    description="The user can use this to create new listing, the listing is part of the seller dashboard",
 )
 def create_listing(listing: ListingCreate, user: UserDep, session: SessionDep):
     db_listing = ListingDB.model_validate(listing)
@@ -155,13 +156,23 @@ async def update_listing(
     return db_listing
 
 
+async def background_task(message: str):
+    await asyncio.sleep(5)
+    print(message)
+
+
 @router.delete(
     "/{listing_id}",
     summary="Delete listing",
     description="Delete the listing with id = listing_id created by current user",
     status_code=status.HTTP_204_NO_CONTENT,
 )
-async def delete_listing(listing_id: int, user: UserDep, session: SessionDep):
+async def delete_listing(
+    background_tasks: BackgroundTasks,
+    listing_id: int,
+    user: UserDep,
+    session: SessionDep,
+):
     listing = session.get(ListingDB, listing_id)
     if listing is None:
         raise HTTPException(
@@ -175,3 +186,5 @@ async def delete_listing(listing_id: int, user: UserDep, session: SessionDep):
         )
     session.delete(listing)
     session.commit()
+
+    background_tasks.add_task(background_task, f"listing {listing_id} deleted")
