@@ -12,3 +12,4 @@ venv/
 # Env files
 .env
 __pycache__/
+*.db

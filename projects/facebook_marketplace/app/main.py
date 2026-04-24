@@ -1,6 +1,8 @@
 from fastapi import FastAPI
 from app.db.database import create_db_and_tables
 from app.api.routes import users, listings, auth
+from contextlib import asynccontextmanager
+
 
 app = FastAPI(
     title="Marketplace API",
@@ -9,9 +11,13 @@ app = FastAPI(
 )
 
 
-@app.on_event("startup")
-def on_startup():
+@asynccontextmanager
+async def lifespan(app: FastAPI):
     create_db_and_tables()
+    yield
+
+
+app = FastAPI(lifespan=lifespan)
 
 
 app.include_router(auth.router)

@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends, HTTPException, Query
+from fastapi import APIRouter, Depends, HTTPException, Query, status
 from sqlmodel import select
 from typing import Annotated
 from app.api.deps import SessionDep
@@ -6,17 +6,14 @@ from app.db.database import get_session
 from app.models.user import UserDB
 from app.schemas.user import UserCreate, UserPublic
 from app.core.security import get_password_hash
+from sqlalchemy.exc import IntegrityError
+
 
 router = APIRouter(prefix="/users", tags=["Users"])
 
 
 @router.post("/", response_model=UserPublic)
 def create_user(user: UserCreate, session: SessionDep):
-    existing = session.exec(
-        select(UserDB).where(UserDB.username == user.username)
-    ).first()
-    if existing:
-        raise HTTPException(400, "Username taken")
 
     db_user = UserDB(
         username=user.username,
@@ -24,14 +21,15 @@ def create_user(user: UserCreate, session: SessionDep):
         hashed_password=get_password_hash(user.password),
     )
     session.add(db_user)
-    session.commit()
-    session.refresh(db_user)
+    try:
+        session.commit()
+        session.refresh(db_user)
+    except IntegrityError:
+        session.rollback()
+        raise HTTPException(
+            status.HTTP_409_CONFLICT, "Username or email already exists"
+        )
     return db_user
-
-
-from fastapi import APIRouter, Query
-from typing import Annotated
-from sqlmodel import select
 
 
 @router.get(

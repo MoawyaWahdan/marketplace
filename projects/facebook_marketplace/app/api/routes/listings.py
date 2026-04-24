@@ -26,11 +26,10 @@ def create_listing(listing: ListingCreate, user: UserDep, session: SessionDep):
     session.add(db_listing)
     try:
         session.commit()
+        session.refresh(db_listing)
     except IntegrityError:
         session.rollback()
-        raise HTTPException(400, "Duplicate listing")
-
-    session.refresh(db_listing)
+        raise HTTPException(status.HTTP_409_CONFLICT, "Duplicate listing")
     return db_listing
 
 
