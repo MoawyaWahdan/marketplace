@@ -1,11 +1,16 @@
 from app.models.user import UserDB
 from sqlmodel import select
+from fastapi import status
 
 
 def test_create_user(client, session):
     response = client.post(
         "/users/",
-        json={"username": "tempe", "password": "abc", "email": "tempe@gmail.com"},
+        json={
+            "username": "tempe",
+            "password": "abc",
+            "email": "tempe@gmail.com",
+        },
     )
 
     assert response.status_code == 200
@@ -14,41 +19,51 @@ def test_create_user(client, session):
     assert data["username"] == "tempe"
     assert data["email"] == "tempe@gmail.com"
 
-    user = session.exec(select(UserDB).where(UserDB.username == "tempe")).first()
-    assert user is not None
+    db_user = session.exec(select(UserDB).where(UserDB.username == "tempe")).first()
+
+    assert db_user is not None
 
 
-def test_duplicate_username(client, session):
-    client.post(
-        "/users/",
-        json={"username": "tempe", "password": "abc", "email": "tempe@gmail.com"},
-    )
-
+def test_duplicate_username(client, session, user):
     response = client.post(
         "/users/",
-        json={"username": "tempe", "password": "abc", "email": "other@gmail.com"},
+        json={
+            "username": user["username"],
+            "password": "newpass",
+            "email": "new_email@gmail.com",
+        },
     )
 
     assert response.status_code == 409
-    assert response.json()["detail"] == "Username or email already exists"
+    assert "already exists" in response.json()["detail"]
 
-    user = session.exec(select(UserDB).where(UserDB.username == "tempe")).first()
-    assert user is not None
+    db_user = session.exec(
+        select(UserDB).where(UserDB.email == "new_email@gmail.com")
+    ).first()
+
+    assert db_user is None
 
 
-def test_duplicate_email(client, session):
-    client.post(
-        "/users/",
-        json={"username": "tempe", "password": "abc", "email": "tempe@gmail.com"},
-    )
-
+def test_duplicate_email(client, session, user):
     response = client.post(
         "/users/",
-        json={"username": "other", "password": "abc", "email": "tempe@gmail.com"},
+        json={
+            "username": "new_username",
+            "password": "abc",
+            "email": user["email"],
+        },
     )
 
     assert response.status_code == 409
-    assert response.json()["detail"] == "Username or email already exists"
+    assert "already exists" in response.json()["detail"]
 
-    user = session.exec(select(UserDB).where(UserDB.username == "other")).first()
-    assert user is None
+    # original user still exists
+    original_user = session.exec(
+        select(UserDB).where(UserDB.username == user["username"])
+    ).first()
+    assert original_user is not None
+
+    new_user = session.exec(
+        select(UserDB).where(UserDB.username == "new_username")
+    ).first()
+    assert new_user is None

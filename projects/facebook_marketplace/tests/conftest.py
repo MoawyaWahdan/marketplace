@@ -38,3 +38,17 @@ def clean_db():
     SQLModel.metadata.drop_all(test_engine)
     SQLModel.metadata.create_all(test_engine)
     yield
+
+
+@pytest.fixture
+def user(client):
+    response = client.post(
+        "/users/",
+        json={
+            "username": "tempe",
+            "password": "abc",
+            "email": "tempe@gmail.com",
+        },
+    )
+    assert response.status_code == 200
+    return {"username": "tempe", "password": "abc", "email": "tempe@gmail.com"}
