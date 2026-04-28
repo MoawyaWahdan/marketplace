@@ -29,8 +29,8 @@ def test_create_listing(client, session):
             "title": "6x9 rug",
             "price": 99,
             "description": "Beautiful 6x9 rug",
-            "condition": 1,
-            "category": 1,
+            "condition": ListingCondition.NEW,
+            "category": ListingCategory.HOME_ESSENTIALS,
         },
     )
 

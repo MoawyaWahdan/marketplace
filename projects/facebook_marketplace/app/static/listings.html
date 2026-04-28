@@ -1,0 +1,158 @@
+<!DOCTYPE html>
+<html>
+
+<header>
+    <style>
+        #create_listing {
+            background-color: azure;
+            border: 2px solid black;
+            border-radius: 5px;
+            padding: 15px;
+            display: flex;
+            gap: 5px;
+            flex-direction: column;
+            max-width: 300px;
+            margin: 10px;
+        }
+
+        #create_listing:hover {
+            background-color: gainsboro;
+        }
+
+        #logout_button {
+            background-color: antiquewhite;
+            border: 2px solid black;
+            border-radius: 5px;
+            margin: 15px;
+        }
+
+        /* The parent container */
+        #my_listings_container {
+            background-color: azure;
+            border: 2px solid black;
+            border-radius: 5px;
+            padding: 10px;
+            display: flex;
+            flex-direction: column;
+
+            /* Use gap instead of margin on items for consistent vertical spacing */
+            gap: 15px;
+
+            max-width: 500px;
+            margin: 10px;
+        }
+
+        #my_listings_container ul {
+            padding: 0;
+            margin: 0;
+            list-style: none;
+            /* Moves this here to ensure the ul ignores bullets */
+        }
+
+        /* Decoration for the individual items */
+        .my-listing {
+            border: 1px solid #ccc;
+            padding: 10px;
+            list-style: none;
+            border-radius: 5px;
+            background-color: #fff;
+            margin: 10px;
+
+
+            /* Remove margin: 10px; the 'gap' above handles this now */
+            box-shadow: 2px 2px 5px rgba(0, 0, 0, 0.05);
+            /* Optional: adds a tiny bit of depth */
+        }
+
+        .my-listing:hover {
+            background-color: gainsboro;
+        }
+    </style>
+</header>
+
+<body>
+
+
+    <div>
+        <button id="logout_button" onclick="logout()">Logout</button>
+        <button id="create_listing" onclick="createListing()">Create new listing</button>
+    </div>
+
+    <div id="my_listings_container">
+        <h3>Your listings</h3>
+        <ul id="my_listings">
+        </ul>
+    </div>
+
+
+    <script>
+        loadListings();
+
+        async function createListing() {
+            const token = localStorage.getItem("token");
+
+            const response = await fetch("/listings", {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json",
+                    "Authorization": "Bearer " + token
+                },
+                body: JSON.stringify({
+                    title: document.getElementById("listing_title").value,
+                    description: document.getElementById("listing_description").value,
+                    price: Number(document.getElementById("listing_price").value),
+                    category: document.getElementById("listing_category").value,
+                    condition: document.getElementById("listing_condition").value
+                })
+            });
+
+            const data = await response.json();
+            console.log(data);
+
+            if (response.ok) {
+                loadListings();
+            } else {
+                console.log("Create listing failed");
+            }
+        }
+
+        async function loadListings() {
+            const token = localStorage.getItem("token");
+            const container = document.getElementById("my_listings");
+
+
+
+            const response = await fetch("/listings", {
+                method: "GET",
+                headers: {
+                    "Authorization": "Bearer " + token
+                }
+            });
+
+            if (!response.ok) {
+                container.textContent = "Failed to load listings";
+                return;
+            }
+
+            const listings = await response.json();
+
+            container.textContent = "";
+
+            listings.forEach(listing => {
+                const li = document.createElement("li");
+                console.log("listing type = ", typeof (listing));
+                li.textContent = listing.title;
+                li.classList.add("my-listing");
+
+                container.appendChild(li);
+            });
+        }
+
+        async function createListing() {
+            window.location.href = "./listing_creation.html";
+        }
+    </script>
+
+</body>
+
+</html>

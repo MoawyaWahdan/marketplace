@@ -9,9 +9,13 @@ from app.core.security import verify_password, create_access_token, DUMMY_HASH
 router = APIRouter()
 
 
-@router.post("/token")
-def login(form_data: OAuth2PasswordRequestForm = Depends(), session=Depends(get_session)):
-    user = session.exec(select(UserDB).where(UserDB.username == form_data.username)).first()
+@router.post("/token", tags=["Authentication"])
+def login(
+    form_data: OAuth2PasswordRequestForm = Depends(), session=Depends(get_session)
+):
+    user = session.exec(
+        select(UserDB).where(UserDB.username == form_data.username)
+    ).first()
 
     if not user:
         verify_password(form_data.password, DUMMY_HASH)

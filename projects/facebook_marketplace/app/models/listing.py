@@ -3,18 +3,18 @@ from enum import Enum
 from sqlalchemy import UniqueConstraint
 
 
-class ListingCategory(Enum):
-    HOME_ESSENTIALS = 1
-    FURNITURES = 2
-    ELECTRONICS = 3
-    TOYS = 4
+class ListingCategory(str, Enum):
+    HOME_ESSENTIALS = "home_essentials"
+    FURNITURES = "furnitures"
+    ELECTRONICS = "electronics"
+    TOYS = "toys"
 
 
-class ListingCondition(Enum):
-    NEW = 1
-    USED_LIKE_NEW = 2
-    USED_GOOD = 3
-    USED_FAIR = 4
+class ListingCondition(str, Enum):
+    NEW = "new"
+    USED_LIKE_NEW = "used_like_new"
+    USED_GOOD = "used_good"
+    USED_FAIR = "used_fair"
 
 
 class ListingBase(SQLModel):

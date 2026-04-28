@@ -1,0 +1,100 @@
+<!DOCTYPE html>
+<html>
+
+<header>
+    <style>
+        #create_listing {
+            background-color: azure;
+            border: 2px solid black;
+            border-radius: 5px;
+            padding: 15px;
+            display: flex;
+            gap: 5px;
+            flex-direction: column;
+            max-width: 300px;
+            margin: 10px;
+        }
+
+
+        #logout_button {
+            background-color: antiquewhite;
+            border: 2px solid black;
+            border-radius: 5px;
+            margin: 15px;
+        }
+
+        #create_lsiting_button:hover {
+            background-color: gainsboro;
+        }
+    </style>
+</header>
+
+<body>
+
+    <div>
+        <button id="logout_button" onclick="logout()">Logout</button>
+
+    </div>
+
+
+    <div id="create_listing">
+        <label for="listing_title">Title:</label>
+        <input type="text" id="listing_title">
+        <label for="listing_description">Description:</label>
+        <input type="text" id="listing_description">
+        <label for="listing_price">Price:</label>
+        <input type="number" id="listing_price">
+        <label for="listing_category">Category:</label>
+        <select id="listing_category" name="Category">
+            <option value="home_essentials">Home Essentials</option>
+            <option value="furnitures">Furnitures</option>
+            <option value="electronics">Electronics</option>
+            <option value="toys">Toyes</option>
+        </select>
+
+        <label for="listing_condition">Condition:</label>
+        <select id="listing_condition" name="Condition">
+            <option value="new">New</option>
+            <option value="used_like_new">Used like new</option>
+            <option value="used_good">Used good</option>
+            <option value="used_fair">Used fair</option>
+        </select><br>
+
+        <button id="create_lsiting_button" onclick="createListing()">Create new listing</button>
+    </div>
+
+    <script>
+        async function createListing() {
+            const token = localStorage.getItem("token");
+
+            const response = await fetch("/listings", {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json",
+                    "Authorization": "Bearer " + token
+                },
+                body: JSON.stringify({
+                    title: document.getElementById("listing_title").value,
+                    description: document.getElementById("listing_description").value,
+                    price: Number(document.getElementById("listing_price").value),
+                    category: document.getElementById("listing_category").value,
+                    condition: document.getElementById("listing_condition").value
+                })
+            });
+
+            const data = await response.json();
+            console.log(data);
+
+            if (response.ok) {
+                window.location.href = "/static/listings.html";
+            } else {
+                console.log("Create listing failed");
+            }
+        }
+
+
+    </script>
+
+</body>
+
+</html>
