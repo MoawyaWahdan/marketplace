@@ -1,7 +1,8 @@
 <!DOCTYPE html>
 <html>
 
-<header>
+<head>
+    <link rel="stylesheet" href="/static/style.css">
     <style>
         #create_listing {
             background-color: azure;
@@ -14,27 +15,15 @@
             max-width: 300px;
             margin: 10px;
         }
-
-
-        #logout_button {
-            background-color: antiquewhite;
-            border: 2px solid black;
-            border-radius: 5px;
-            margin: 15px;
-        }
-
-        #create_lsiting_button:hover {
-            background-color: gainsboro;
-        }
     </style>
-</header>
+</head>
 
 <body>
+    <script src="/static/navbar.js"></script>
+    <script src="/static/auth.js"></script>
+    <div id="nav_placeholder"></div>
 
-    <div>
-        <button id="logout_button" onclick="logout()">Logout</button>
 
-    </div>
 
 
     <div id="create_listing">
@@ -60,10 +49,11 @@
             <option value="used_fair">Used fair</option>
         </select><br>
 
-        <button id="create_lsiting_button" onclick="createListing()">Create new listing</button>
+        <button class="btn_primary" onclick="createListing()">Create new listing</button>
     </div>
 
     <script>
+        document.addEventListener('DOMContentLoaded', loadNavbar);
         async function createListing() {
             const token = localStorage.getItem("token");
 

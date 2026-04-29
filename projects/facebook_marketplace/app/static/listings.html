@@ -1,37 +1,27 @@
 <!DOCTYPE html>
 <html>
 
-<header>
+<head>
+    <link rel="stylesheet" href="/static/style.css">
     <style>
-        #create_listing {
-            background-color: azure;
+        .buttons_container {
+            background-color: blanchedalmond;
             border: 2px solid black;
             border-radius: 5px;
-            padding: 15px;
+            padding: 5px;
             display: flex;
             gap: 5px;
-            flex-direction: column;
-            max-width: 300px;
-            margin: 10px;
+            margin: 5px;
+            max-width: 500px;
         }
 
-        #create_listing:hover {
-            background-color: gainsboro;
-        }
-
-        #logout_button {
-            background-color: antiquewhite;
-            border: 2px solid black;
-            border-radius: 5px;
-            margin: 15px;
-        }
 
         /* The parent container */
         #my_listings_container {
             background-color: azure;
             border: 2px solid black;
             border-radius: 5px;
-            padding: 10px;
+            padding: 5px;
             display: flex;
             flex-direction: column;
 
@@ -39,7 +29,7 @@
             gap: 15px;
 
             max-width: 500px;
-            margin: 10px;
+            margin: 5px;
         }
 
         #my_listings_container ul {
@@ -68,14 +58,16 @@
             background-color: gainsboro;
         }
     </style>
-</header>
+</head>
 
 <body>
+    <script src="/static/navbar.js"></script>
+    <script src="/static/auth.js"></script>
 
+    <div id="nav_placeholder"></div>
 
-    <div>
-        <button id="logout_button" onclick="logout()">Logout</button>
-        <button id="create_listing" onclick="createListing()">Create new listing</button>
+    <div class="buttons_container">
+        <button class="btn_primary" onclick="createListing()">Create new listing</button>
     </div>
 
     <div id="my_listings_container">
@@ -86,7 +78,10 @@
 
 
     <script>
+        document.addEventListener('DOMContentLoaded', loadNavbar);
+
         loadListings();
+
 
         async function createListing() {
             const token = localStorage.getItem("token");
