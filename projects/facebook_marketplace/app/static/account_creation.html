@@ -1,0 +1,68 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <link rel="stylesheet" href="/static/style.css">
+    <style>
+        #create_listing {
+            background-color: azure;
+            border: 2px solid black;
+            border-radius: 5px;
+            padding: 15px;
+            display: flex;
+            gap: 5px;
+            flex-direction: column;
+            max-width: 300px;
+            margin: 10px;
+        }
+    </style>
+</head>
+
+<body>
+
+    <div id="create_listing">
+        <label for="username">Username:</label>
+        <input type="text" id="username">
+        <label for="password">Password:</label>
+        <input type="text" id="password">
+        <label for="email">Email:</label>
+        <input type="text" id="email">
+
+        <button class="btn_primary" onclick="createAccount()">Create</button>
+    </div>
+
+    <script>
+
+        async function createAccount() {
+            const token = localStorage.getItem("token");
+
+            const response = await fetch("/users", {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json",
+                    "Authorization": "Bearer " + token
+                },
+                body: JSON.stringify({
+                    username: document.getElementById("username").value,
+                    password: document.getElementById("password").value,
+                    email: document.getElementById("email").value
+                })
+            });
+
+            const data = await response.json();
+
+
+            if (response.ok) {
+                window.location.href = "/static/login.html";
+            } else {
+                console.log("Creating new user failed");
+                console.log(data);
+            }
+        }
+
+
+    </script>
+
+</body>
+
+</html>

@@ -22,7 +22,6 @@ router = APIRouter(prefix="/listings", tags=["Listings"])
 def create_listing(listing: ListingCreate, user: UserDep, session: SessionDep):
     db_listing = ListingDB.model_validate(listing)
     db_listing.seller_id = user.id
-
     session.add(db_listing)
     try:
         session.commit()

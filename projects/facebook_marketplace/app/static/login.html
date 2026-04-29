@@ -14,6 +14,7 @@
         <input type="password" id="password"><br><br>
 
         <button class="btn_primary" onclick="login()">Login</button>
+        <button class="btn_secondary" onclick="createAccount()">Create new account</button>
 
     </div>
 
@@ -49,7 +50,10 @@
         }
 
 
+        function createAccount() {
+            window.location.replace("/static/account_creation.html");
 
+        }
     </script>
 
 </body>

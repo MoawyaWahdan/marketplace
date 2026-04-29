@@ -18,7 +18,7 @@ class ListingCondition(str, Enum):
 
 
 class ListingBase(SQLModel):
-    title: str = Field(..., min_length=5, max_length=30)
+    title: str = Field(..., min_length=5, max_length=150)
     price: float = Field(..., ge=0)
     description: str = Field(..., min_length=5, max_length=3000)
     condition: ListingCondition

@@ -3,7 +3,7 @@ from app.models.listing import ListingCategory, ListingCondition
 
 
 class ListingCreate(BaseModel):
-    title: str = Field(..., min_length=5, max_length=30)
+    title: str = Field(..., min_length=5, max_length=150)
     price: float = Field(..., ge=0)
     description: str
     condition: ListingCondition
