@@ -1,0 +1,229 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <style>
+        #listing {
+            display: flex;
+            gap: 20px;
+        }
+
+        #gallery {
+            flex: 2;
+            background-color: #555;
+            position: relative;
+        }
+
+        #main-image-container {
+            margin: auto;
+            max-width: 800px;
+            aspect-ratio: 1 / 1;
+        }
+
+        #main-image {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+
+        }
+
+        #thumbnails-container {
+            max-width: 800px;
+            margin: auto;
+            width: 100%;
+            display: flex;
+            gap: 5px;
+            overflow-x: auto;
+            margin-top: 5px;
+
+        }
+
+        .thumbnail {
+            width: 100px;
+            height: 100px;
+            cursor: pointer;
+        }
+
+        .arrow {
+            position: absolute;
+            top: 50%;
+            font-weight: bold;
+            background-color: #555;
+            color: white;
+            cursor: pointer;
+            font-size: 20px;
+
+
+        }
+
+        #left-arrow {
+            left: 20px;
+        }
+
+        #right-arrow {
+            right: 20px;
+        }
+
+        .non-selected-thumbnail {
+            filter: blur(2px);
+        }
+
+        #listing-info-container {
+            flex: 1;
+            max-width: 400px;
+            margin: 0;
+        }
+
+        #listing-title {
+            font-size: 22px;
+            margin-bottom: 10px;
+        }
+
+        #listing-description {
+            color: #555;
+            margin-bottom: 15px;
+        }
+
+        .listing-meta p {
+            margin: 5px 0;
+        }
+    </style>
+</head>
+
+<body>
+    <div id="listing">
+        <div id="gallery">
+            <span id="left-arrow" class="arrow">&#10094;</span>
+            <div id="main-image-container">
+                <img id="main-image" alt="listing main image">
+            </div>
+            <span id="right-arrow" class="arrow">&#10095;</span>
+            <div id="thumbnails-container">
+
+            </div>
+        </div>
+
+        <div id="listing-info-container">
+            <h3 id="listing-title"></h3>
+            <p id="listing-description"></p>
+            <div class="listing-meta">
+                <p><strong>Price: </strong><span id="listing-price"></span></p>
+                <p><strong>Category: </strong><span id="listing-category"></span></p>
+                <p><strong>Condition: </strong><span id="listing-condition"></span></p>
+            </div>
+        </div>
+    </div>
+    <script>
+
+        let listing = getListing();
+        let images = buildImagesArray();
+
+        addMainImage(images);
+        addThumbnails(images);
+        addListingInfo(listing);
+        addThumbnailHanler(images);
+        addMainImageSwipingHandler(images);
+
+
+        function getListing() {
+            let listing_id = localStorage.getItem("selected_listing");
+            return JSON.parse(localStorage.getItem(`listing${listing_id}`));
+        }
+
+        function buildImagesArray() {
+            let images = []
+            for (let i = 0; i < listing.images.length; ++i) {
+                images.push([String(i), listing.images[i].url]);
+            }
+            return images;
+        }
+
+        function addMainImage(images) {
+            let url = ""
+            let main_image = document.getElementById("main-image");
+            if (images.length > 0) {
+                url = images[0][1];
+                main_image.dataset.imageIndex = 0;
+            }
+            main_image.src = url;
+        }
+
+        function updateThumbnailUI(old_index, new_index) {
+
+            let thumbnails = document.querySelectorAll("#thumbnails-container img");
+            thumbnails[old_index].classList.add("non-selected-thumbnail");
+            thumbnails[new_index].classList.remove("non-selected-thumbnail");
+        }
+        function addThumbnails(images) {
+
+            let thumbnails_container = document.getElementById("thumbnails-container");
+            for (let i = 0; i < images.length; ++i) {
+                let thumbnail = document.createElement("img");
+                thumbnail.classList.add("thumbnail");
+                thumbnail.alt = "thumbnail";
+                thumbnail.dataset.imageIndex = i;
+                thumbnail.src = images[i][1];
+                thumbnails_container.append(thumbnail);
+                if (i != Number(document.getElementById("main-image").dataset.imageIndex)) {
+                    thumbnail.classList.add("non-selected-thumbnail");
+                }
+            }
+        }
+        function addListingInfo(listing) {
+            document.getElementById("listing-title").textContent = listing.title;
+            document.getElementById("listing-description").textContent = listing.description;
+            document.getElementById("listing-price").textContent = "$" + listing.price;
+            document.getElementById("listing-category").textContent = listing.category;
+            document.getElementById("listing-condition").textContent = listing.condition;
+        }
+
+
+        function addThumbnailHanler(images) {
+
+            let thumbnails_container = document.getElementById("thumbnails-container");
+
+            thumbnails_container.addEventListener("click", (event) => {
+                let thumbnail = event.target.closest("img");
+                if (!thumbnail || !thumbnails_container.contains(thumbnail)) {
+                    return;
+                }
+
+                let main_image = document.getElementById("main-image");
+                let new_image_index = thumbnail.dataset.imageIndex;
+                let old_image_index = main_image.dataset.imageIndex;
+                main_image.src = images[new_image_index][1];
+                main_image.dataset.imageIndex = new_image_index;
+
+                updateThumbnailUI(old_image_index, new_image_index);
+            });
+        }
+
+
+        function addMainImageSwipingHandler(images) {
+            let gallery = document.getElementById("gallery");
+            gallery.addEventListener("click", (event) => {
+                let target = event.target.closest(".arrow");
+                if (!target || !gallery.contains(target)) {
+                    return;
+                }
+
+                const shift = target.id == "left-arrow" ? -1 : 1;
+
+                let main_image = document.getElementById("main-image");
+                let old_image_index = Number(main_image.dataset.imageIndex);
+                let new_image_index = old_image_index + shift;
+
+                if (new_image_index < 0) new_image_index = images.length - 1;
+                if (new_image_index >= images.length) new_image_index = 0;
+                main_image.src = images[new_image_index][1];
+                main_image.dataset.imageIndex = new_image_index;
+
+                updateThumbnailUI(old_image_index, new_image_index);
+
+            });
+        }
+    </script>
+</body>
+
+
+</html>

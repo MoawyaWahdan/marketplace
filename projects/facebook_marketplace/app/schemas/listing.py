@@ -1,5 +1,6 @@
 from pydantic import BaseModel, Field
 from app.models.listing import ListingCategory, ListingCondition
+from typing import Annotated
 
 
 class ListingCreate(BaseModel):
@@ -11,11 +12,17 @@ class ListingCreate(BaseModel):
     sku: str | None = None
 
 
+class ListingImagePublic(BaseModel):
+    id: int
+    url: str
+
+
 class ListingPublic(ListingCreate):
     id: int
     seller_id: int
     buyer_id: int | None = None
     is_sold: bool
+    images: list[ListingImagePublic] = Field(default_factory=list)
 
 
 class ListingUpdate(BaseModel):

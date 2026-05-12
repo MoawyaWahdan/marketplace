@@ -30,14 +30,20 @@
             background-color: #fff;
             margin: 5px;
 
-
+            display: flex;
+            justify-content: space-between;
             /* Remove margin: 10px; the 'gap' above handles this now */
-            box-shadow: 2px 2px 5px rgba(0, 0, 0, 0.05);
-            /* Optional: adds a tiny bit of depth */
+
+
         }
 
         .my-listing:hover {
             background-color: gainsboro;
+        }
+
+        .listing_thumbnail {
+            width: 150px;
+            height: 150px;
         }
     </style>
 </head>
@@ -60,44 +66,130 @@
 
     <script>
         document.addEventListener('DOMContentLoaded', loadNavbar);
-
         loadListings();
 
+        let my_listings_container = document.getElementById("my_listings_container");
 
+        my_listings_container.addEventListener("click", (event) => {
+            let button = event.target.closest("button");
+            if (!button || !my_listings_container.contains(button)) {
+                return;
+            }
 
-        async function loadListings() {
+            if (button.classList.contains("view_listing")) {
+                localStorage.setItem("selected_listing", button.dataset.listingId);
+                window.location.href = "./listing_viewer.html";
+            }
+
+            else if (button.classList.contains("delete_listing")) {
+                deleteListing(button);
+            }
+        }
+
+        );
+
+        async function deleteListing(delete_button) {
+
             const token = localStorage.getItem("token");
-            const container = document.getElementById("my_listings");
-
-
-
-            const response = await fetch("/listings", {
-                method: "GET",
+            const response = await fetch(`/listings/${delete_button.dataset.listingId}`, {
+                method: "DELETE",
                 headers: {
                     "Authorization": "Bearer " + token
                 }
             });
 
-            if (!response.ok) {
-                container.textContent = "Failed to load listings";
-                return;
-            }
+            let li = delete_button.closest("li");
+            li.remove();
+        }
 
-            const listings = await response.json();
-
+        async function loadListings() {
+            const token = localStorage.getItem("token");
+            const container = document.getElementById("my_listings");
             container.textContent = "";
 
+            async function fetchListings() {
+
+                const response = await fetch("/listings/my/selling/", {
+                    method: "GET",
+                    headers: {
+                        "Authorization": "Bearer " + token
+                    }
+                });
+
+                if (!response.ok) {
+                    console.log("resonse", response);
+                    if (response.status == 401) {
+                        window.location.replace("/static/login.html");
+                    }
+                    container.textContent = "Failed to load listings";
+                    return [];
+                }
+
+                const listings = await response.json();
+
+                return listings;
+            }
+
+
+            const ListingButtonType = {
+                VIEW: "View",
+                DELETE: "Delete",
+            };
+
+            function createListingButton(id, type) {
+                let button = document.createElement("button");
+                button.dataset.listingId = id;
+
+                switch (type) {
+                    case ListingButtonType.VIEW:
+                        button.textContent = "View";
+                        button.classList.add("view_listing");
+                        break;
+                    case ListingButtonType.DELETE:
+                        button.textContent = "Delete";
+                        button.classList.add("delete_listing");
+                }
+                return button;
+
+            }
+
+            function createListingThumbnail(listing) {
+
+                let thumbnail = document.createElement("img");
+                thumbnail.classList.add("listing_thumbnail");
+                if (listing.images.length > 0) {
+                    thumbnail.src = listing.images[0].url;
+                }
+
+                return thumbnail
+            }
+
+            function createListingText(listing) {
+
+                const text = document.createElement("span");
+                text.textContent = listing.title + " - $" + listing.price;
+                return text;
+            }
+            function storeListing(listing) {
+                localStorage.setItem(`listing${listing.id}`, JSON.stringify(listing));
+            }
+
+            listings = await fetchListings();
             listings.forEach(listing => {
                 const li = document.createElement("li");
-                console.log("listing type = ", typeof (listing));
-                li.textContent = listing.title + " - $" + listing.price;
                 li.classList.add("my-listing");
+                storeListing(listing);
+                li.append(createListingThumbnail(listing));
+                li.append(createListingText(listing));
+                li.append(createListingButton(listing.id, ListingButtonType.VIEW));
+                li.append(createListingButton(listing.id, ListingButtonType.DELETE));
 
-                container.appendChild(li);
+                container.append(li);
             });
         }
 
-        async function createListing() {
+
+        function createListing() {
             window.location.href = "./listing_creation.html";
         }
     </script>

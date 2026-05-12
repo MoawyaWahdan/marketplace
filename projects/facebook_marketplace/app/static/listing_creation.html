@@ -34,27 +34,76 @@
         <input type="number" id="listing_price">
         <label for="listing_category">Category:</label>
         <select id="listing_category" name="Category">
-            <option value="home_essentials">Home Essentials</option>
-            <option value="furnitures">Furnitures</option>
-            <option value="electronics">Electronics</option>
-            <option value="toys">Toyes</option>
+            <option value="Home essentials">Home Essentials</option>
+            <option value="Furnitures">Furnitures</option>
+            <option value="Electronics">Electronics</option>
+            <option value="Toys">Toyes</option>
         </select>
 
         <label for="listing_condition">Condition:</label>
         <select id="listing_condition" name="Condition">
-            <option value="new">New</option>
-            <option value="used_like_new">Used like new</option>
-            <option value="used_good">Used good</option>
-            <option value="used_fair">Used fair</option>
+            <option value="New">New</option>
+            <option value="Used like new">Used like new</option>
+            <option value="Used good">Used good</option>
+            <option value="Used fair">Used fair</option>
         </select><br>
 
+        <label for="images">Images</label>
+        <input type="file" id="images" multiple>
         <button class="btn_primary" onclick="createListing()">Create new listing</button>
 
         <div id="error_message" style="color: red; margin-top: 10px;"></div>
     </div>
 
+
     <script>
         document.addEventListener('DOMContentLoaded', loadNavbar);
+
+        function setErrorMessage(data) {
+
+            let err = "";
+            let error_container = document.getElementById("error_message");
+            if (data.detail) {
+                err = Array.isArray(data.detail)
+                    ? data.detail.map(err => `${err.loc[1]}: ${err.msg}`).join(", ")
+                    : data.detail;
+            } else {
+                err = "Something went wrong. Please try again.";
+            }
+            document.getElementById("error_message").textContent = err;
+        }
+
+
+        async function uploadImages(listing_id) {
+
+            let formData = new FormData();
+            const token = localStorage.getItem("token");
+            let files = document.getElementById("images").files;
+            for (let file of files) {
+                formData.append("images", file);
+            }
+            const response = await fetch(`/listings/${listing_id}/upload_images`, {
+                method: "POST",
+                headers: {
+                    "Authorization": "Bearer " + token
+                },
+
+                body: formData
+
+            });
+
+            const data = await response.json();
+            if (response.ok) {
+                return true;
+            }
+            else {
+                console.log("Uploading images failed");
+                setErrorMessage(data);
+                return false;
+            }
+        }
+
+
         async function createListing() {
             const token = localStorage.getItem("token");
 
@@ -76,17 +125,19 @@
             const data = await response.json();
 
             if (response.ok) {
+                let images_uploaded = await uploadImages(data.id);
+                if (!images_uploaded) {
+                    console.log("Uploading images failed");
+                    return;
+                }
                 window.location.href = "/static/listings.html";
             } else {
-                console.log("Create listing failed", data);
-                error_message = document.getElementById("error_message")
-                if (data.detail) {
-                    error_message.textContent = Array.isArray(data.detail)
-                        ? data.detail.map(err => `${err.loc[1]}: ${err.msg}`).join(", ")
-                        : data.detail;
-                } else {
-                    error_message.textContent = "Something went wrong. Please try again.";
+                if (response.status == 401) {
+                    window.location.replace("/static/login.html");
                 }
+                console.log("Create listing failed");
+                setErrorMessage(data);
+
             }
         }
 
