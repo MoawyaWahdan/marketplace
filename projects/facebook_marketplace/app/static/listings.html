@@ -4,36 +4,42 @@
 <head>
     <link rel="stylesheet" href="/static/style.css">
     <style>
-        /* The parent container */
-        #my_listings_container {
+        #my-listings-container {
             background-color: azure;
             padding: 5px;
             display: flex;
             flex-direction: column;
-
             margin: 5px;
+
         }
 
-        #my_listings_container ul {
-            padding: 0;
-            margin: 0;
-            list-style: none;
-            /* Moves this here to ensure the ul ignores bullets */
-        }
 
-        /* Decoration for the individual items */
         .my-listing {
             border: 1px solid #ccc;
             padding: 5px;
-            list-style: none;
             border-radius: 5px;
             background-color: #fff;
             margin: 5px;
-
+            list-style: none;
             display: flex;
-            justify-content: space-between;
-            /* Remove margin: 10px; the 'gap' above handles this now */
+            gap: 5px;
 
+        }
+
+
+        .listing-left {
+            flex: 0 0 auto;
+        }
+
+        .listing-middle {
+            flex: 1;
+        }
+
+        .listing-right {
+            display: flex;
+            flex: 0 0 auto;
+            gap: 5px;
+            align-items: flex-start;
 
         }
 
@@ -41,9 +47,20 @@
             background-color: gainsboro;
         }
 
-        .listing_thumbnail {
+        .listing-thumbnail {
             width: 150px;
             height: 150px;
+            border-radius: 5px;
+            object-fit: cover;
+            display: block;
+        }
+
+        .listing-button {
+            background-color: aquamarine;
+        }
+
+        .listing-button:hover {
+            background-color: gainsboro;
         }
     </style>
 </head>
@@ -56,10 +73,9 @@
     <div>
         <button class="btn_secondary" onclick="createListing()">Create new listing</button>
     </div>
-    <div id="my_listings_container">
-
-        <h3 style="font-family: 'Helvetica', sans-serif">Your listings</h3>
-        <ul id="my_listings">
+    <div id="my-listings-container">
+        <h3>Your listings</h3>
+        <ul id="my-listings">
         </ul>
     </div>
 
@@ -68,7 +84,7 @@
         document.addEventListener('DOMContentLoaded', loadNavbar);
         loadListings();
 
-        let my_listings_container = document.getElementById("my_listings_container");
+        let my_listings_container = document.getElementById("my-listings-container");
 
         my_listings_container.addEventListener("click", (event) => {
             let button = event.target.closest("button");
@@ -103,11 +119,10 @@
         }
 
         async function loadListings() {
-            const token = localStorage.getItem("token");
-            const container = document.getElementById("my_listings");
-            container.textContent = "";
 
             async function fetchListings() {
+                const token = localStorage.getItem("token");
+                const container = document.getElementById("my-listings");
 
                 const response = await fetch("/listings/my/selling/", {
                     method: "GET",
@@ -136,9 +151,10 @@
                 DELETE: "Delete",
             };
 
-            function createListingButton(id, type) {
+            function addListingButton(id, type) {
                 let button = document.createElement("button");
                 button.dataset.listingId = id;
+                button.classList.add("listing-button");
 
                 switch (type) {
                     case ListingButtonType.VIEW:
@@ -153,10 +169,10 @@
 
             }
 
-            function createListingThumbnail(listing) {
+            function addListingThumbnail(listing) {
 
                 let thumbnail = document.createElement("img");
-                thumbnail.classList.add("listing_thumbnail");
+                thumbnail.classList.add("listing-thumbnail");
                 if (listing.images.length > 0) {
                     thumbnail.src = listing.images[0].url;
                 }
@@ -164,7 +180,7 @@
                 return thumbnail
             }
 
-            function createListingText(listing) {
+            function addListingText(listing) {
 
                 const text = document.createElement("span");
                 text.textContent = listing.title + " - $" + listing.price;
@@ -174,17 +190,32 @@
                 localStorage.setItem(`listing${listing.id}`, JSON.stringify(listing));
             }
 
-            listings = await fetchListings();
+            const listings = await fetchListings();
+            let my_listings = document.getElementById("my-listings");
             listings.forEach(listing => {
                 const li = document.createElement("li");
                 li.classList.add("my-listing");
-                storeListing(listing);
-                li.append(createListingThumbnail(listing));
-                li.append(createListingText(listing));
-                li.append(createListingButton(listing.id, ListingButtonType.VIEW));
-                li.append(createListingButton(listing.id, ListingButtonType.DELETE));
 
-                container.append(li);
+                const listing_left = document.createElement("div");
+                listing_left.classList.add("listing-left");
+                li.append(listing_left);
+
+                const listing_middle = document.createElement("div");
+                listing_middle.classList.add("listing-middle");
+                li.append(listing_middle);
+
+                const listing_right = document.createElement("div");
+                listing_right.classList.add("listing-right");
+                li.append(listing_right);
+
+
+                storeListing(listing);
+                listing_left.append(addListingThumbnail(listing));
+                listing_middle.append(addListingText(listing));
+                listing_right.append(addListingButton(listing.id, ListingButtonType.VIEW));
+                listing_right.append(addListingButton(listing.id, ListingButtonType.DELETE));
+
+                my_listings.append(li);
             });
         }
 
