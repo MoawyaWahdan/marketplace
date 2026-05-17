@@ -96,7 +96,10 @@
                 localStorage.setItem("selected_listing", button.dataset.listingId);
                 window.location.href = "./listing_viewer.html";
             }
-
+            else if (button.classList.contains("edit_listing")) {
+                localStorage.setItem("selected_listing", button.dataset.listingId);
+                window.location.href = "./listing_edit.html";
+            }
             else if (button.classList.contains("delete_listing")) {
                 deleteListing(button);
             }
@@ -148,6 +151,7 @@
 
             const ListingButtonType = {
                 VIEW: "View",
+                EDIT: "Edit",
                 DELETE: "Delete",
             };
 
@@ -164,6 +168,11 @@
                     case ListingButtonType.DELETE:
                         button.textContent = "Delete";
                         button.classList.add("delete_listing");
+                        break;
+                    case ListingButtonType.EDIT:
+                        button.textContent = "Edit";
+                        button.classList.add("edit_listing");
+                        break;
                 }
                 return button;
 
@@ -213,6 +222,7 @@
                 listing_left.append(addListingThumbnail(listing));
                 listing_middle.append(addListingText(listing));
                 listing_right.append(addListingButton(listing.id, ListingButtonType.VIEW));
+                listing_right.append(addListingButton(listing.id, ListingButtonType.EDIT));
                 listing_right.append(addListingButton(listing.id, ListingButtonType.DELETE));
 
                 my_listings.append(li);

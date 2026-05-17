@@ -35,7 +35,6 @@ from app.schemas.listing import (
 from app.models.listing_image import ListingImageDB
 from app.api.deps import UserDep, SessionDep
 
-
 logger = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/listings", tags=["Listings"])
@@ -245,7 +244,7 @@ async def get_listing(listing_id: int, session: SessionDep):
 
 
 @router.patch(
-    "/{listing_id}/",
+    "/{listing_id}",
     response_model=ListingPublic,
     summary="Partially update your listing",
     description="Update one or more fields of a listing you own. Only provided fields are changed.",
@@ -331,4 +330,41 @@ async def delete_listing(
 
     # 2- delete the listing
     session.delete(listing)
+    session.commit()
+
+
+@router.delete(
+    "/{listing_id}/images",
+    summary="Delete listing images",
+    description="Delete the images of listing with id = listing_id",
+    status_code=status.HTTP_204_NO_CONTENT,
+)
+async def delete_listing_images(
+    listing_id: int,
+    user: UserDep,
+    session: SessionDep,
+):
+    listing = session.get(ListingDB, listing_id)
+    if listing is None:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND, detail="Listing not found"
+        )
+
+    if listing.seller_id != user.id:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="You can only delete your own listings",
+        )
+
+    images_ids = session.exec(
+        select(ListingImageDB.id).where(ListingImageDB.listing_id == listing_id)
+    ).all()
+    for id in images_ids:
+        db_image = session.get(ListingImageDB, id)
+        image_name = db_image.name
+        image_full_path = os.path.join(IMAGES_PATH, image_name)
+        os.remove(image_full_path)
+
+    session.exec(delete(ListingImageDB).where(ListingImageDB.listing_id == listing_id))
+
     session.commit()
