@@ -9,10 +9,15 @@
             padding: 5px;
             display: flex;
             flex-direction: column;
-            margin: 5px;
+            gap: 15px;
+
 
         }
 
+        #my-listings {
+            padding: 0;
+            margin: 0;
+        }
 
         .my-listing {
             border: 1px solid #ccc;
@@ -23,6 +28,7 @@
             list-style: none;
             display: flex;
             gap: 5px;
+
 
         }
 
@@ -57,10 +63,33 @@
 
         .listing-button {
             background-color: aquamarine;
+            cursor: pointer;
+            border-radius: 10px;
+            padding: 5px;
         }
 
         .listing-button:hover {
-            background-color: gainsboro;
+            background-color: red;
+
+        }
+
+        #search-input {
+            max-width: 300px;
+            border-radius: 30px;
+            padding: 10px;
+        }
+
+        #create-listing {
+            align-self: flex-start;
+            background-color: aquamarine;
+            cursor: pointer;
+            border-radius: 10px;
+            padding: 5px;
+        }
+
+        #create-listing:hover {
+            background-color: red;
+
         }
     </style>
 </head>
@@ -70,11 +99,11 @@
     <script src="/static/auth.js"></script>
 
     <div id="nav_placeholder"></div>
-    <div>
-        <button class="btn_secondary" onclick="createListing()">Create new listing</button>
-    </div>
+
     <div id="my-listings-container">
+        <button onclick="createListing()" id="create-listing">Create listing</button>
         <h3>Your listings</h3>
+        <input type="text" id="search-input" placeholder="Search your listings">
         <ul id="my-listings">
         </ul>
     </div>
@@ -83,30 +112,44 @@
     <script>
         document.addEventListener('DOMContentLoaded', loadNavbar);
         loadListings();
+        addListingsClickHandler();
+        addSearchHandler();
 
-        let my_listings_container = document.getElementById("my-listings-container");
+        function addListingsClickHandler() {
+            let my_listings_container = document.getElementById("my-listings-container");
+            my_listings_container.addEventListener("click", (event) => {
+                let button = event.target.closest("button");
+                if (!button || !my_listings_container.contains(button)) {
+                    return;
+                }
 
-        my_listings_container.addEventListener("click", (event) => {
-            let button = event.target.closest("button");
-            if (!button || !my_listings_container.contains(button)) {
-                return;
+                if (button.classList.contains("view_listing")) {
+                    localStorage.setItem("selected_listing", button.dataset.listingId);
+                    window.location.href = "./listing_viewer.html";
+                }
+                else if (button.classList.contains("edit_listing")) {
+                    localStorage.setItem("selected_listing", button.dataset.listingId);
+                    window.location.href = "./listing_edit.html";
+                }
+                else if (button.classList.contains("delete_listing")) {
+                    deleteListing(button);
+                }
             }
 
-            if (button.classList.contains("view_listing")) {
-                localStorage.setItem("selected_listing", button.dataset.listingId);
-                window.location.href = "./listing_viewer.html";
-            }
-            else if (button.classList.contains("edit_listing")) {
-                localStorage.setItem("selected_listing", button.dataset.listingId);
-                window.location.href = "./listing_edit.html";
-            }
-            else if (button.classList.contains("delete_listing")) {
-                deleteListing(button);
-            }
+            );
         }
 
-        );
+        function addSearchHandler() {
+            let search_input = document.getElementById("search-input");
+            let timer_id;
+            search_input.addEventListener("input", (event) => {
+                clearTimeout(timer_id);
 
+                timer_id = setTimeout(loadListings, 300);
+
+            });
+
+        }
         async function deleteListing(delete_button) {
 
             const token = localStorage.getItem("token");
@@ -117,37 +160,57 @@
                 }
             });
 
-            let li = delete_button.closest("li");
-            li.remove();
+            if (response.ok) {
+                delete_button.closest("li").remove();
+            }
         }
 
-        async function loadListings() {
+        async function fetchListings() {
 
-            async function fetchListings() {
-                const token = localStorage.getItem("token");
-                const container = document.getElementById("my-listings");
 
-                const response = await fetch("/listings/my/selling/", {
-                    method: "GET",
-                    headers: {
-                        "Authorization": "Bearer " + token
-                    }
-                });
+            const token = localStorage.getItem("token");
+            const container = document.getElementById("my-listings");
+            const search_input = document.getElementById("search-input");
 
-                if (!response.ok) {
-                    console.log("resonse", response);
-                    if (response.status == 401) {
-                        window.location.replace("/static/login.html");
-                    }
-                    container.textContent = "Failed to load listings";
-                    return [];
-                }
+            let url = "";
+            let url_params = new URLSearchParams();
+            if (search_input.value) {
+                url_params.append("title", search_input.value);
+                url = `/listings/search/my?${url_params}`;
+                console.log("url", url);
+            }
+            else {
+                url = "/listings/my/selling/";
 
-                const listings = await response.json();
-
-                return listings;
             }
 
+            const response = await fetch(url, {
+                method: "GET",
+                headers: {
+                    "Authorization": "Bearer " + token
+                },
+            });
+
+            if (!response.ok) {
+                console.log("resonse", response);
+                if (response.status === 401) {
+                    window.location.replace("/static/login.html");
+                }
+                container.textContent = "Failed to load listings";
+                return [];
+            }
+
+            const listings = await response.json();
+
+            return listings;
+        }
+
+        function clearListings() {
+            document.getElementById("my-listings").innerHTML = "";
+        }
+        async function loadListings() {
+
+            clearListings();
 
             const ListingButtonType = {
                 VIEW: "View",

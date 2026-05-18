@@ -9,6 +9,7 @@ from fastapi import (
     File,
     Request,
     Form,
+    Query,
 )
 import asyncio
 from pathlib import Path
@@ -368,3 +369,23 @@ async def delete_listing_images(
     session.exec(delete(ListingImageDB).where(ListingImageDB.listing_id == listing_id))
 
     session.commit()
+
+
+@router.get(
+    "/search/my",
+    summary="search my listings",
+    description="reurn listings with title containing given words in the query",
+    response_model=list[ListingPublic],
+)
+def search_my_listings(
+    title: Annotated[str, Query()], user: UserDep, session: SessionDep
+):
+
+    words = title.strip().split()
+    conditions = [ListingDB.title.ilike(f"%{word}%") for word in words]
+
+    listings = session.exec(
+        select(ListingDB).where(ListingDB.seller_id == user.id, *conditions)
+    ).all()
+
+    return get_listings_public(listings, session)
