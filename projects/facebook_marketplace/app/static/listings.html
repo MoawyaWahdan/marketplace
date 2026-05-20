@@ -39,6 +39,8 @@
 
         .listing-middle {
             flex: 1;
+            display: flex;
+            flex-direction: column;
         }
 
         .listing-right {
@@ -123,20 +125,46 @@
                     return;
                 }
 
-                if (button.classList.contains("view_listing")) {
+                if (button.classList.contains("view-listing")) {
                     localStorage.setItem("selected_listing", button.dataset.listingId);
                     window.location.href = "./listing_viewer.html";
                 }
-                else if (button.classList.contains("edit_listing")) {
+                else if (button.classList.contains("edit-listing")) {
                     localStorage.setItem("selected_listing", button.dataset.listingId);
                     window.location.href = "./listing_edit.html";
                 }
-                else if (button.classList.contains("delete_listing")) {
+                else if (button.classList.contains("delete-listing")) {
                     deleteListing(button);
                 }
+                else if (button.classList.contains("mark-listing")) {
+                    toggleListingSoldStatus(button);
+                }
             }
-
             );
+        }
+
+
+        async function toggleListingSoldStatus(button) {
+            let li = button.closest("li");
+            let token = localStorage.getItem("token");
+
+            const is_sold_old = li.listing.is_sold;
+            const is_sold_new = !is_sold_old;
+            const response = await fetch(`/listings/${li.listing.id}/mark_listing`, {
+                method: "POST",
+                headers: {
+                    "Authorization": "Bearer " + token,
+                    "Content-Type": "application/json"
+                },
+                body: JSON.stringify({
+                    "is_sold": is_sold_new,
+                })
+            }
+            );
+            if (response.ok) {
+                li.listing.is_sold = is_sold_new;
+                updateListingSoldStatus(li);
+            }
         }
 
         function addSearchHandler() {
@@ -208,6 +236,18 @@
         function clearListings() {
             document.getElementById("my-listings").innerHTML = "";
         }
+
+
+
+        function updateListingSoldStatus(li) {
+            let status_container = li.querySelector("span.listing-status");
+            status_container.textContent = li.listing.is_sold ? "Sold" : "Available";
+            status_container.style.color = li.listing.is_sold ? 'red' : '#0a0';
+
+            let status_button = li.querySelector("button.mark-listing");
+            status_button.textContent = li.listing.is_sold ? "Mark as available" : "Mark as sold";
+
+        }
         async function loadListings() {
 
             clearListings();
@@ -216,32 +256,36 @@
                 VIEW: "View",
                 EDIT: "Edit",
                 DELETE: "Delete",
+                MARK_STATUS: "MarkStatus"
             };
 
-            function addListingButton(id, type) {
+            function createListingButton(listing, type) {
                 let button = document.createElement("button");
-                button.dataset.listingId = id;
+                button.dataset.listingId = listing.id;
                 button.classList.add("listing-button");
 
                 switch (type) {
                     case ListingButtonType.VIEW:
                         button.textContent = "View";
-                        button.classList.add("view_listing");
+                        button.classList.add("view-listing");
                         break;
                     case ListingButtonType.DELETE:
                         button.textContent = "Delete";
-                        button.classList.add("delete_listing");
+                        button.classList.add("delete-listing");
                         break;
                     case ListingButtonType.EDIT:
                         button.textContent = "Edit";
-                        button.classList.add("edit_listing");
+                        button.classList.add("edit-listing");
+                        break;
+                    case ListingButtonType.MARK_STATUS:
+                        button.classList.add("mark-listing");
                         break;
                 }
                 return button;
 
             }
 
-            function addListingThumbnail(listing) {
+            function createListingThumbnail(listing) {
 
                 let thumbnail = document.createElement("img");
                 thumbnail.classList.add("listing-thumbnail");
@@ -252,12 +296,21 @@
                 return thumbnail
             }
 
-            function addListingText(listing) {
+            function createListingTitle(listing) {
 
-                const text = document.createElement("span");
-                text.textContent = listing.title + " - $" + listing.price;
-                return text;
+                const title_container = document.createElement("span");
+                title_container.textContent = listing.title + " - $" + listing.price;
+
+                return title_container;
             }
+
+
+            function createListingStatus(listing) {
+                const listing_status_container = document.createElement("span");
+                listing_status_container.classList.add("listing-status");
+                return listing_status_container;
+            }
+
             function storeListing(listing) {
                 localStorage.setItem(`listing${listing.id}`, JSON.stringify(listing));
             }
@@ -266,6 +319,8 @@
             let my_listings = document.getElementById("my-listings");
             listings.forEach(listing => {
                 const li = document.createElement("li");
+                li.listing = listing;
+
                 li.classList.add("my-listing");
 
                 const listing_left = document.createElement("div");
@@ -282,13 +337,18 @@
 
 
                 storeListing(listing);
-                listing_left.append(addListingThumbnail(listing));
-                listing_middle.append(addListingText(listing));
-                listing_right.append(addListingButton(listing.id, ListingButtonType.VIEW));
-                listing_right.append(addListingButton(listing.id, ListingButtonType.EDIT));
-                listing_right.append(addListingButton(listing.id, ListingButtonType.DELETE));
+                listing_left.append(createListingThumbnail(listing));
+                listing_middle.append(createListingTitle(listing));
+                listing_middle.append(createListingStatus(listing));
+                listing_right.append(createListingButton(listing, ListingButtonType.VIEW));
+                listing_right.append(createListingButton(listing, ListingButtonType.EDIT));
+                listing_right.append(createListingButton(listing, ListingButtonType.DELETE));
+                listing_right.append(createListingButton(listing, ListingButtonType.MARK_STATUS));
+
+                updateListingSoldStatus(li);
 
                 my_listings.append(li);
+
             });
         }
 

@@ -32,3 +32,7 @@ class ListingUpdate(BaseModel):
     condition: ListingCondition | None = None
     category: ListingCategory | None = None
     sku: str | None = None
+
+
+class ListingMark(BaseModel):
+    is_sold: bool

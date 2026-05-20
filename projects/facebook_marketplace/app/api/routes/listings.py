@@ -32,6 +32,7 @@ from app.schemas.listing import (
     ListingPublic,
     ListingUpdate,
     ListingImagePublic,
+    ListingMark,
 )
 from app.models.listing_image import ListingImageDB
 from app.api.deps import UserDep, SessionDep
@@ -201,26 +202,28 @@ async def get_my_purchases(user: UserDep, session: SessionDep):
 
 
 @router.post(
-    "/{listing_id}/buy",
-    description="The current user but the listing with id=listing_id",
-    summary="Buy listing",
+    "/{listing_id}/mark_listing",
+    summary="Mark listing to availble/sold",
+    description="Mark listing with id=listing_id to availble/sold. The user can mark his own listings only",
 )
-async def buy_listing(listing_id: int, user: UserDep, session: SessionDep):
+async def mark_listing(
+    listing_id: int, listing_mark: ListingMark, user: UserDep, session: SessionDep
+):
     listing = session.get(ListingDB, listing_id)
     if not listing:
         raise HTTPException(404, "Listing not found")
-    if listing.seller_id == user.id:
-        raise HTTPException(400, "You cannot buy your own listing")
-    if listing.is_sold:
+    if listing.seller_id != user.id:
+        raise HTTPException(400, "You can mark your own listing only")
+    if listing.is_sold and listing_mark.is_sold:
         raise HTTPException(400, "Listing already sold")
+    if not listing.is_sold and not listing_mark.is_sold:
+        raise HTTPException(400, "Listing already availble")
 
-    listing.is_sold = True
-    listing.buyer_id = user.id
+    listing.is_sold = listing_mark.is_sold
     session.add(listing)
     session.commit()
-    session.refresh(listing)
 
-    return {"message": "Listing purchased successfully"}
+    return {"message": "Listing status updated successfully"}
 
 
 @router.get(
