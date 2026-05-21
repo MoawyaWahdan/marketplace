@@ -25,6 +25,11 @@ class ListingPublic(ListingCreate):
     images: list[ListingImagePublic] = Field(default_factory=list)
 
 
+class ListingPage(BaseModel):
+    listings: list[ListingPublic]
+    total: int
+
+
 class ListingUpdate(BaseModel):
     title: str | None = None
     price: float | None = None

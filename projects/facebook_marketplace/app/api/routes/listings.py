@@ -21,7 +21,7 @@ import uuid
 
 from sqlmodel import select, delete
 from sqlalchemy.exc import IntegrityError
-from sqlalchemy import and_
+from sqlalchemy import and_, func
 from typing import Annotated
 from pydantic import Field
 
@@ -33,6 +33,7 @@ from app.schemas.listing import (
     ListingUpdate,
     ListingImagePublic,
     ListingMark,
+    ListingPage,
 )
 from app.models.listing_image import ListingImageDB
 from app.api.deps import UserDep, SessionDep
@@ -181,15 +182,29 @@ async def get_listings(session=Depends(get_session)):
     "/my/selling/",
     summary="Get listings created by user",
     description="Get all the listings created by the user",
-    response_model=list[ListingPublic],
+    response_model=ListingPage,
 )
-async def get_my_selling_listings(user: UserDep, session: SessionDep):
+async def get_my_selling_listings(
+    user: UserDep,
+    session: SessionDep,
+    offset: Annotated[int, Query(ge=0)] = 0,
+    limit: Annotated[int, Query(ge=10, le=100)] = 10,
+):
 
+    count = session.exec(
+        select(func.count(ListingDB.id)).where(ListingDB.seller_id == user.id)
+    ).one()
     listings = session.exec(
-        select(ListingDB).where(ListingDB.seller_id == user.id)
+        select(ListingDB)
+        .where(ListingDB.seller_id == user.id)
+        .order_by(ListingDB.id.desc())
+        .offset(offset)
+        .limit(limit)
     ).all()
 
-    return get_listings_public(listings, session)
+    public_listings = get_listings_public(listings, session)
+
+    return {"listings": public_listings, "total": count}
 
 
 async def get_my_purchases(user: UserDep, session: SessionDep):
@@ -201,12 +216,12 @@ async def get_my_purchases(user: UserDep, session: SessionDep):
     return listings
 
 
-@router.post(
-    "/{listing_id}/mark_listing",
+@router.patch(
+    "/{listing_id}/status",
     summary="Mark listing to availble/sold",
     description="Mark listing with id=listing_id to availble/sold. The user can mark his own listings only",
 )
-async def mark_listing(
+async def update_listing_status(
     listing_id: int, listing_mark: ListingMark, user: UserDep, session: SessionDep
 ):
     listing = session.get(ListingDB, listing_id)
@@ -378,17 +393,33 @@ async def delete_listing_images(
     "/search/my",
     summary="search my listings",
     description="reurn listings with title containing given words in the query",
-    response_model=list[ListingPublic],
+    response_model=ListingPage,
 )
 def search_my_listings(
-    title: Annotated[str, Query()], user: UserDep, session: SessionDep
+    title: Annotated[str, Query()],
+    user: UserDep,
+    session: SessionDep,
+    offset: Annotated[int, Query(ge=0)] = 0,
+    limit: Annotated[int, Query(ge=10, le=100)] = 10,
 ):
 
     words = title.strip().split()
     conditions = [ListingDB.title.ilike(f"%{word}%") for word in words]
 
+    count = session.exec(
+        select(func.count(ListingDB.id)).where(
+            ListingDB.seller_id == user.id, *conditions
+        )
+    ).one()
+
     listings = session.exec(
-        select(ListingDB).where(ListingDB.seller_id == user.id, *conditions)
+        select(ListingDB)
+        .where(ListingDB.seller_id == user.id, *conditions)
+        .order_by(ListingDB.id.desc())
+        .offset(offset)
+        .limit(limit)
     ).all()
 
-    return get_listings_public(listings, session)
+    listings_public = get_listings_public(listings, session)
+
+    return {"listings": listings_public, "total": count}

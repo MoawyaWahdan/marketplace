@@ -41,6 +41,8 @@
             flex: 1;
             display: flex;
             flex-direction: column;
+            align-items: flex-start;
+            gap: 10px;
         }
 
         .listing-right {
@@ -93,6 +95,26 @@
             background-color: red;
 
         }
+
+        #listings-pages-nav {
+            display: flex;
+            justify-content: center;
+            gap: 3px
+        }
+
+        .pagination-page {
+            padding: 5px;
+            font: bold;
+            font-size: 20px;
+            background-color: burlywood;
+            border: solid 1px;
+            border-radius: 3px;
+        }
+
+        .pagination-page:hover {
+            cursor: pointer;
+            background-color: red;
+        }
     </style>
 </head>
 
@@ -108,15 +130,17 @@
         <input type="text" id="search-input" placeholder="Search your listings">
         <ul id="my-listings">
         </ul>
+
+        <div id="listings-pages-nav"></div>
     </div>
 
 
     <script>
         document.addEventListener('DOMContentLoaded', loadNavbar);
-        loadListings();
+        loadListings(1, true);
         addListingsClickHandler();
         addSearchHandler();
-
+        addPagesNavHandler();
         function addListingsClickHandler() {
             let my_listings_container = document.getElementById("my-listings-container");
             my_listings_container.addEventListener("click", (event) => {
@@ -150,8 +174,8 @@
 
             const is_sold_old = li.listing.is_sold;
             const is_sold_new = !is_sold_old;
-            const response = await fetch(`/listings/${li.listing.id}/mark_listing`, {
-                method: "POST",
+            const response = await fetch(`/listings/${li.listing.id}/status`, {
+                method: "PATCH",
                 headers: {
                     "Authorization": "Bearer " + token,
                     "Content-Type": "application/json"
@@ -172,8 +196,7 @@
             let timer_id;
             search_input.addEventListener("input", (event) => {
                 clearTimeout(timer_id);
-
-                timer_id = setTimeout(loadListings, 300);
+                timer_id = setTimeout(() => { loadListings(1, true) }, 300);
 
             });
 
@@ -193,7 +216,7 @@
             }
         }
 
-        async function fetchListings() {
+        async function fetchListings(offset, limit) {
 
 
             const token = localStorage.getItem("token");
@@ -202,13 +225,16 @@
 
             let url = "";
             let url_params = new URLSearchParams();
+            url_params.append("offset", offset);
+            url_params.append("limit", limit);
+
             if (search_input.value) {
                 url_params.append("title", search_input.value);
                 url = `/listings/search/my?${url_params}`;
                 console.log("url", url);
             }
             else {
-                url = "/listings/my/selling/";
+                url = `/listings/my/selling/?${url_params}`;
 
             }
 
@@ -228,9 +254,9 @@
                 return [];
             }
 
-            const listings = await response.json();
+            const listings_page = await response.json();
 
-            return listings;
+            return listings_page;
         }
 
         function clearListings() {
@@ -248,8 +274,8 @@
             status_button.textContent = li.listing.is_sold ? "Mark as available" : "Mark as sold";
 
         }
-        async function loadListings() {
-
+        async function loadListings(page_number, refresh_pagination) {
+            const LIMIT = 10;
             clearListings();
 
             const ListingButtonType = {
@@ -315,7 +341,14 @@
                 localStorage.setItem(`listing${listing.id}`, JSON.stringify(listing));
             }
 
-            const listings = await fetchListings();
+            const listings_page = await fetchListings((page_number - 1) * 10, LIMIT);
+
+            const listings = listings_page.listings;
+            listings_total = listings_page.total;
+
+            if (refresh_pagination) {
+                buildPagesNav(listings_total, LIMIT);
+            }
             let my_listings = document.getElementById("my-listings");
             listings.forEach(listing => {
                 const li = document.createElement("li");
@@ -343,7 +376,7 @@
                 listing_right.append(createListingButton(listing, ListingButtonType.VIEW));
                 listing_right.append(createListingButton(listing, ListingButtonType.EDIT));
                 listing_right.append(createListingButton(listing, ListingButtonType.DELETE));
-                listing_right.append(createListingButton(listing, ListingButtonType.MARK_STATUS));
+                listing_middle.append(createListingButton(listing, ListingButtonType.MARK_STATUS));
 
                 updateListingSoldStatus(li);
 
@@ -353,8 +386,33 @@
         }
 
 
+        function buildPagesNav(listings_total, listings_per_page) {
+            const pages_nav = document.getElementById("listings-pages-nav");
+            pages_nav.innerHTML = "";
+            const pages_count = Math.ceil(listings_total / listings_per_page);
+            for (let page = 1; page <= pages_count; page++) {
+                let span = document.createElement("span");
+                span.classList.add("pagination-page");
+                span.textContent = page;
+                span.dataset.page = page;
+                pages_nav.append(span);
+            }
+
+        }
         function createListing() {
             window.location.href = "./listing_creation.html";
+        }
+
+        function addPagesNavHandler() {
+            const pages_nav = document.getElementById("listings-pages-nav");
+            pages_nav.addEventListener("click", (event) => {
+                const target = event.target.closest("span.pagination-page");
+                if (!target || !pages_nav.contains(target)) {
+                    return;
+                }
+
+                loadListings(Number(target.dataset.page), false);
+            })
         }
     </script>
 
