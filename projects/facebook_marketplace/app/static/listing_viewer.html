@@ -115,22 +115,58 @@
     </div>
     <script>
 
-        let listing = getListing();
-        let images = buildImagesArray();
+        (async () => {
+            const listing = await fetchListing();
+            if (listing === null) {
+                document.getElementById("listing").innerHTML = "Failed to load listing";
+                throw new Error("listing is null");
+            }
 
-        addMainImage(images);
-        addThumbnails(images);
-        addListingInfo(listing);
-        addThumbnailHanler(images);
-        addMainImageSwipingHandler(images);
+            const images = buildImagesArray(listing);
+
+            addMainImage(images);
+            addThumbnails(images);
+            addListingDetails(listing);
+            addThumbnailHandler(images);
+            addMainImageSwipingHandler(images);
+        })();
 
 
-        function getListing() {
-            let listing_id = localStorage.getItem("selected_listing");
-            return JSON.parse(localStorage.getItem(`listing${listing_id}`));
+
+
+        async function fetchListing() {
+            const listing_id = localStorage.getItem("selected_listing");
+            if (!listing_id) {
+                console.error("No listing_id found in localStorage");
+                return null;
+            }
+
+            try {
+                const token = localStorage.getItem("token");
+                const response = await fetch(`/listings/${listing_id}/`, {
+                    method: "GET",
+                    headers: {
+                        "Authorization": "Bearer " + token,
+                    },
+                });
+
+                if (response.ok) {
+                    return await response.json();
+
+                }
+                else {
+                    console.error("Failed to fetch listing");
+                    return null;
+                }
+            }
+            catch (error) {
+                console.error("Netwrok error occurred while fetching listing", error);
+                return null;
+            }
+
         }
 
-        function buildImagesArray() {
+        function buildImagesArray(listing) {
             let images = []
             for (let i = 0; i < listing.images.length; ++i) {
                 images.push([String(i), listing.images[i].url]);
@@ -169,7 +205,7 @@
                 }
             }
         }
-        function addListingInfo(listing) {
+        function addListingDetails(listing) {
             document.getElementById("listing-title").textContent = listing.title;
             document.getElementById("listing-description").textContent = listing.description;
             document.getElementById("listing-price").textContent = "$" + listing.price;
@@ -178,7 +214,7 @@
         }
 
 
-        function addThumbnailHanler(images) {
+        function addThumbnailHandler(images) {
 
             let thumbnails_container = document.getElementById("thumbnails-container");
 

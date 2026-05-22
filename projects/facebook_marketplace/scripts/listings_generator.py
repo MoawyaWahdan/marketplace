@@ -22,9 +22,9 @@ def generate_listings():
     with Session(engine) as session:
         for i in range(LISTINGS_TO_ADD):
             listing_db = ListingDB(
-                title=str(i) + " green " + generate_random_string(5, 100),
+                title=str(i) + " user 1 " + generate_random_string(5, 100),
                 description=generate_random_string(5, 1000),
-                seller_id=2,
+                seller_id=1,
                 price=round(random.uniform(10, 200), 1),
                 category=random.choice(list(ListingCategory)),
                 condition=random.choice(list(ListingCondition)),

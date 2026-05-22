@@ -43,6 +43,7 @@
             flex-direction: column;
             align-items: flex-start;
             gap: 10px;
+
         }
 
         .listing-right {
@@ -115,6 +116,11 @@
             cursor: pointer;
             background-color: red;
         }
+
+        .mark-listing {
+            margin-top: auto;
+            margin-bottom: 10px;
+        }
     </style>
 </head>
 
@@ -136,11 +142,18 @@
 
 
     <script>
-        document.addEventListener('DOMContentLoaded', loadNavbar);
-        loadListings(1, true);
-        addListingsClickHandler();
-        addSearchHandler();
-        addPagesNavHandler();
+        document.addEventListener('DOMContentLoaded',
+            (async () => {
+                loadNavbar();
+                await loadListings(1, true);
+                addListingsClickHandler();
+                addSearchHandler();
+                addPagesNavHandler();
+            }
+            )
+
+        );
+
         function addListingsClickHandler() {
             let my_listings_container = document.getElementById("my-listings-container");
             my_listings_container.addEventListener("click", (event) => {
@@ -341,7 +354,7 @@
                 localStorage.setItem(`listing${listing.id}`, JSON.stringify(listing));
             }
 
-            const listings_page = await fetchListings((page_number - 1) * 10, LIMIT);
+            const listings_page = await fetchListings((page_number - 1) * LIMIT, LIMIT);
 
             const listings = listings_page.listings;
             listings_total = listings_page.total;

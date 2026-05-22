@@ -167,15 +167,28 @@ def get_listings_public(listings_db: list[ListingDB], session):
 
 @router.get(
     "/",
-    response_model=list[ListingPublic],
+    response_model=ListingPage,
     summary="Get all listings",
     description="Return all listings in the marketplace (excluding sold items).",
 )
-async def get_listings(session=Depends(get_session)):
+async def get_all_listings(
+    user: UserDep,
+    session=Depends(get_session),
+    offset: Annotated[int, Query(ge=0)] = 0,
+    limit: Annotated[int, Query(ge=10, le=100)] = 10,
+):
+    count = session.exec(select(func.count(ListingDB.id))).one()
+
     listings_db = session.exec(
-        select(ListingDB).where(ListingDB.is_sold == False)
+        select(ListingDB)
+        .where(ListingDB.is_sold == False)
+        .order_by(ListingDB.id.desc())
+        .offset(offset)
+        .limit(limit)
     ).all()
-    return get_listings_public(listings_db, session)
+
+    public_listings = get_listings_public(listings_db, session)
+    return {"listings": public_listings, "total": count}
 
 
 @router.get(
@@ -244,10 +257,10 @@ async def update_listing_status(
 @router.get(
     "/{listing_id}/",
     summary="Get specific listing",
-    description="Return the listing belongs to this user which has id = listing_id",
+    description="Return the listing with id = listing_id",
     response_model=ListingPublic,
 )
-async def get_listing(listing_id: int, session: SessionDep):
+async def get_listing(listing_id: int, user: UserDep, session: SessionDep):
     listing_db = session.get(ListingDB, listing_id)
 
     if listing_db is None:
@@ -415,6 +428,42 @@ def search_my_listings(
     listings = session.exec(
         select(ListingDB)
         .where(ListingDB.seller_id == user.id, *conditions)
+        .order_by(ListingDB.id.desc())
+        .offset(offset)
+        .limit(limit)
+    ).all()
+
+    listings_public = get_listings_public(listings, session)
+
+    return {"listings": listings_public, "total": count}
+
+
+@router.get(
+    "/search",
+    summary="search my listings",
+    description="reurn listings with title containing given words in the query",
+    response_model=ListingPage,
+)
+def search_all_listings(
+    title: Annotated[str, Query()],
+    user: UserDep,
+    session: SessionDep,
+    offset: Annotated[int, Query(ge=0)] = 0,
+    limit: Annotated[int, Query(ge=10, le=100)] = 10,
+):
+
+    words = title.strip().split()
+    conditions = [ListingDB.title.ilike(f"%{word}%") for word in words]
+
+    count = session.exec(
+        select(func.count(ListingDB.id)).where(
+            ListingDB.seller_id == user.id, *conditions
+        )
+    ).one()
+
+    listings = session.exec(
+        select(ListingDB)
+        .where(*conditions)
         .order_by(ListingDB.id.desc())
         .offset(offset)
         .limit(limit)

@@ -42,7 +42,7 @@
 
             if (response.ok) {
                 localStorage.setItem("token", data.access_token);
-                window.location.replace("/static/listings.html");
+                window.location.replace("/static/global_listings.html");
             } else {
                 message.style.color = "red";
                 message.textContent = "Login failed";
