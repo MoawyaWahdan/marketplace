@@ -1,0 +1,308 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <link rel="stylesheet" href="/static/style.css">
+    <style>
+        #listings-container {
+            background-color: azure;
+            padding: 5px;
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+        }
+
+        #listings {
+            padding: 0;
+            margin: 0;
+            display: flex;
+            flex-wrap: wrap;
+        }
+
+        .listing {
+            display: flex;
+            flex-direction: column;
+            border: 1px solid #ccc;
+            padding: 5px;
+            border-radius: 5px;
+            background-color: #fff;
+            margin: 5px;
+            gap: 5px;
+
+        }
+
+
+        .listing:hover {
+            background-color: gainsboro;
+
+        }
+
+        .listing-thumbnail {
+            width: 200px;
+            height: 200px;
+            border-radius: 5px;
+            object-fit: cover;
+            display: block;
+        }
+
+        .listing-details {
+            width: 200px;
+            height: 150px;
+            border-radius: 5px;
+            object-fit: cover;
+            display: inline-block;
+            overflow-wrap: break-word;
+
+        }
+
+        #seller-dashboard-button {
+            background-color: aquamarine;
+            cursor: pointer;
+            border-radius: 10px;
+            padding: 5px;
+
+        }
+
+        #seller-dashboard-button:hover {
+            background-color: red;
+
+        }
+
+        #search-input {
+            max-width: 300px;
+            border-radius: 30px;
+            padding: 10px;
+        }
+
+
+        #listings-pages-nav {
+            display: flex;
+            justify-content: center;
+            gap: 3px
+        }
+
+        .pagination-page {
+            padding: 5px;
+            font: bold;
+            font-size: 20px;
+            background-color: burlywood;
+            border: solid 1px;
+            border-radius: 3px;
+            cursor: pointer;
+        }
+
+        .pagination-page:hover {
+            background-color: red;
+        }
+    </style>
+</head>
+
+<body>
+    <script src="/static/navbar.js"></script>
+    <script src="/static/auth.js"></script>
+
+    <div id="nav_placeholder"></div>
+    <div id="seller-dashboard">
+        <button id="seller-dashboard-button">Seller dashboard</button>
+    </div>
+    <div id="listings-container">
+        <input type="text" id="search-input" placeholder="Search your listings">
+        <div id="listings"></div>
+        <div id="listings-pages-nav"></div>
+    </div>
+
+
+    <script>
+        document.addEventListener('DOMContentLoaded',
+            (async () => {
+                loadNavbar();
+                addSellerDashboardHandler();
+                await loadListings(1, true);
+                addListingsClickHandler();
+                addSearchHandler();
+                addPagesNavHandler();
+            }
+            )
+
+        );
+
+        function addSellerDashboardHandler() {
+            const sellerDashboardButton = document.getElementById("seller-dashboard-button");
+            sellerDashboardButton.addEventListener("click", (event) => {
+                window.location.href = "./listings.html";
+
+            })
+        }
+        function addListingsClickHandler() {
+            let listings_container = document.getElementById("listings-container");
+            listings_container.addEventListener("click", (event) => {
+                let target = event.target.closest(".listing");
+                if (!target || !listings_container.contains(target)) {
+                    return;
+                }
+
+                localStorage.setItem("selected_listing", target.listing.id);
+                window.location.href = "./listing_viewer.html";
+
+            }
+            );
+        }
+
+
+        function addSearchHandler() {
+            let search_input = document.getElementById("search-input");
+            let timer_id;
+            search_input.addEventListener("input", (event) => {
+                clearTimeout(timer_id);
+                timer_id = setTimeout(() => { loadListings(1, true) }, 300);
+
+            });
+
+        }
+
+
+        async function fetchListings(offset, limit) {
+
+
+            const token = localStorage.getItem("token");
+            const container = document.getElementById("listings");
+            const search_input = document.getElementById("search-input");
+
+            let url = "";
+            let url_params = new URLSearchParams();
+            url_params.append("offset", offset);
+            url_params.append("limit", limit);
+
+            if (search_input.value) {
+                url_params.append("title", search_input.value);
+                url = `/listings/search?${url_params}`;
+                console.log("url", url);
+            }
+            else {
+                url = `/listings?${url_params}`;
+
+            }
+
+            const response = await fetch(url, {
+                method: "GET",
+                headers: {
+                    "Authorization": "Bearer " + token,
+                },
+            });
+
+            if (!response.ok) {
+                console.log("resonse", response);
+                if (response.status === 401) {
+                    window.location.replace("/static/login.html");
+                }
+                container.textContent = "Failed to load listings";
+                return [];
+            }
+
+            const listings_page = await response.json();
+
+            return listings_page;
+        }
+
+        function clearListings() {
+            document.getElementById("listings").innerHTML = "";
+        }
+
+
+
+        async function loadListings(page_number, refresh_pagination) {
+            const LIMIT = 40;
+            clearListings();
+
+            function addListingThumbnail(listing, thumbnail_container) {
+
+                let thumbnail = document.createElement("img");
+                thumbnail.classList.add("listing-thumbnail");
+                if (listing.images.length > 0) {
+                    thumbnail.src = listing.images[0].url;
+                }
+
+                thumbnail_container.append(thumbnail);
+            }
+
+            function addListingDetails(listing, details_container) {
+
+                const title_container = document.createElement("span");
+                details_container.append(title_container);
+                title_container.textContent = listing.title + " - $" + listing.price;
+
+
+                const status_container = document.createElement("span");
+                details_container.append(status_container);
+                status_container.classList.add("listing-details");
+                status_container.textContent = listing.is_sold ? "Sold" : "Available";
+                status_container.style.color = listing.is_sold ? 'red' : '#0a0';
+
+
+            }
+
+            const listings_page = await fetchListings((page_number - 1) * LIMIT, LIMIT);
+
+            const listings = listings_page.listings;
+            listings_total = listings_page.total;
+
+            if (refresh_pagination) {
+                buildPagesNav(listings_total, LIMIT);
+            }
+            let listings_container = document.getElementById("listings");
+            listings.forEach(listing => {
+                const li = document.createElement("li");
+                listings_container.append(li);
+                li.listing = listing;
+                li.classList.add("listing");
+
+                const listing_thumbnail = document.createElement("div");
+                listing_thumbnail.classList.add("listing-image");
+                li.append(listing_thumbnail);
+
+                const listing_details = document.createElement("div");
+                listing_details.classList.add("listing-details");
+                li.append(listing_details);
+
+
+                addListingThumbnail(listing, listing_thumbnail);
+                addListingDetails(listing, listing_details);
+
+
+            });
+        }
+
+
+        function buildPagesNav(listings_total, listings_per_page) {
+            const pages_nav = document.getElementById("listings-pages-nav");
+            pages_nav.innerHTML = "";
+            const pages_count = Math.ceil(listings_total / listings_per_page);
+            for (let page = 1; page <= pages_count; page++) {
+                let span = document.createElement("span");
+                span.classList.add("pagination-page");
+                span.textContent = page;
+                span.dataset.page = page;
+                pages_nav.append(span);
+            }
+
+        }
+        function createListing() {
+            window.location.href = "./listing_creation.html";
+        }
+
+        function addPagesNavHandler() {
+            const pages_nav = document.getElementById("listings-pages-nav");
+            pages_nav.addEventListener("click", (event) => {
+                const target = event.target.closest("span.pagination-page");
+                if (!target || !pages_nav.contains(target)) {
+                    return;
+                }
+
+                loadListings(Number(target.dataset.page), false);
+            })
+        }
+    </script>
+
+</body>
+
+</html>
