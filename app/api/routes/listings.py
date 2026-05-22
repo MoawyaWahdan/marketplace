@@ -177,6 +177,7 @@ async def get_all_listings(
     offset: Annotated[int, Query(ge=0)] = 0,
     limit: Annotated[int, Query(ge=10, le=100)] = 10,
 ):
+    logger.info("get_all_listings called")
     count = session.exec(select(func.count(ListingDB.id))).one()
 
     listings_db = session.exec(
