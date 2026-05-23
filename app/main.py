@@ -4,7 +4,6 @@ from app.api.routes import users, listings, auth
 from contextlib import asynccontextmanager
 from fastapi.staticfiles import StaticFiles
 
-
 app = FastAPI(
     title="Marketplace API",
     description="API for managing listings and users",
