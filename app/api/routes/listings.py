@@ -12,7 +12,7 @@ from fastapi import (
     Query,
 )
 import asyncio
-from pathlib import Path
+from pathlib import Path as FilePath
 import time
 import os
 import logging
@@ -47,7 +47,7 @@ IMAGES_URL_PATH = "/static/images/listing_images"
 
 
 def generate_image_name(client_image_name):
-    ext = Path(client_image_name).suffix
+    ext = FilePath(client_image_name).suffix
     return f"{uuid.uuid4()}{ext}"
 
 
@@ -75,7 +75,7 @@ async def upload_listing_images(
     try:
         for file in images:
             image_name = generate_image_name(file.filename)
-            image_full_path = Path(IMAGES_PATH) / image_name
+            image_full_path = FilePath(IMAGES_PATH) / image_name
             db_image = ListingImageDB(listing_id=listing_id, name=image_name)
             with open(image_full_path, "wb") as buffer:
                 content = await file.read()

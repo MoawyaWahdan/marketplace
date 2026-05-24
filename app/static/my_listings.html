@@ -1,0 +1,444 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <link rel="stylesheet" href="/static/style.css">
+    <style>
+        #my-listings-container {
+            background-color: azure;
+            padding: 5px;
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+
+
+        }
+
+        #my-listings {
+            padding: 0;
+            margin: 0;
+        }
+
+        .my-listing {
+            border: 1px solid #ccc;
+            padding: 5px;
+            border-radius: 5px;
+            background-color: #fff;
+            margin: 5px;
+            list-style: none;
+            display: flex;
+            gap: 5px;
+
+
+        }
+
+
+        .listing-left {
+            flex: 0 0 auto;
+        }
+
+        .listing-middle {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            align-items: flex-start;
+            gap: 10px;
+
+        }
+
+        .listing-right {
+            display: flex;
+            flex: 0 0 auto;
+            gap: 5px;
+            align-items: flex-start;
+
+        }
+
+        .my-listing:hover {
+            background-color: gainsboro;
+        }
+
+        .listing-thumbnail {
+            width: 150px;
+            height: 150px;
+            border-radius: 5px;
+            object-fit: cover;
+            display: block;
+        }
+
+        .listing-button {
+            background-color: aquamarine;
+            cursor: pointer;
+            border-radius: 10px;
+            padding: 5px;
+        }
+
+        .listing-button:hover {
+            background-color: red;
+
+        }
+
+        #search-input {
+            max-width: 300px;
+            border-radius: 30px;
+            padding: 10px;
+        }
+
+        #create-listing {
+            align-self: flex-start;
+            background-color: aquamarine;
+            cursor: pointer;
+            border-radius: 10px;
+            padding: 5px;
+        }
+
+        #create-listing:hover {
+            background-color: red;
+
+        }
+
+        #listings-pages-nav {
+            display: flex;
+            justify-content: center;
+            gap: 3px
+        }
+
+        .pagination-page {
+            padding: 5px;
+            font: bold;
+            font-size: 20px;
+            background-color: burlywood;
+            border: solid 1px;
+            border-radius: 3px;
+        }
+
+        .pagination-page:hover {
+            cursor: pointer;
+            background-color: red;
+        }
+
+        .mark-listing {
+            margin-top: auto;
+            margin-bottom: 10px;
+        }
+    </style>
+</head>
+
+<body>
+    <script src="/static/navbar.js"></script>
+    <script src="/static/auth.js"></script>
+
+    <div id="nav_placeholder"></div>
+    <div>
+        <button id="global-listings-button" class="btn_primary">Global listings</button>
+    </div>
+    <div id="my-listings-container">
+        <button onclick="createListing()" id="create-listing">Create listing</button>
+        <h3>Your listings</h3>
+        <input type="text" id="search-input" placeholder="Search your listings">
+        <ul id="my-listings">
+        </ul>
+
+        <div id="listings-pages-nav"></div>
+    </div>
+
+
+    <script>
+        document.addEventListener('DOMContentLoaded',
+            (async () => {
+                loadNavbar();
+                await loadListings(1, true);
+                addListingsClickHandler();
+                addSearchHandler();
+                addPagesNavHandler();
+                addGlobalListingsHandler();
+            }
+            )
+
+        );
+
+        function addListingsClickHandler() {
+            let my_listings_container = document.getElementById("my-listings-container");
+            my_listings_container.addEventListener("click", (event) => {
+                let button = event.target.closest("button");
+                if (!button || !my_listings_container.contains(button)) {
+                    return;
+                }
+
+                if (button.classList.contains("view-listing")) {
+                    localStorage.setItem("selected_listing", button.dataset.listingId);
+                    window.location.href = "./listing_viewer.html";
+                }
+                else if (button.classList.contains("edit-listing")) {
+                    localStorage.setItem("selected_listing", button.dataset.listingId);
+                    window.location.href = "./listing_edit.html";
+                }
+                else if (button.classList.contains("delete-listing")) {
+                    deleteListing(button);
+                }
+                else if (button.classList.contains("mark-listing")) {
+                    toggleListingSoldStatus(button);
+                }
+            }
+            );
+        }
+
+
+        async function toggleListingSoldStatus(button) {
+            let li = button.closest("li");
+            let token = localStorage.getItem("token");
+
+            const is_sold_old = li.listing.is_sold;
+            const is_sold_new = !is_sold_old;
+            const response = await fetch(`/listings/${li.listing.id}/status`, {
+                method: "PATCH",
+                headers: {
+                    "Authorization": "Bearer " + token,
+                    "Content-Type": "application/json"
+                },
+                body: JSON.stringify({
+                    "is_sold": is_sold_new,
+                })
+            }
+            );
+            if (response.ok) {
+                li.listing.is_sold = is_sold_new;
+                updateListingSoldStatus(li);
+            }
+        }
+
+        function addSearchHandler() {
+            let search_input = document.getElementById("search-input");
+            let timer_id;
+            search_input.addEventListener("input", (event) => {
+                clearTimeout(timer_id);
+                timer_id = setTimeout(() => { loadListings(1, true) }, 300);
+
+            });
+
+        }
+        async function deleteListing(delete_button) {
+
+            const token = localStorage.getItem("token");
+            const response = await fetch(`/listings/${delete_button.dataset.listingId}`, {
+                method: "DELETE",
+                headers: {
+                    "Authorization": "Bearer " + token
+                }
+            });
+
+            if (response.ok) {
+                delete_button.closest("li").remove();
+            }
+        }
+
+        async function fetchListings(offset, limit) {
+
+
+            const token = localStorage.getItem("token");
+            const container = document.getElementById("my-listings");
+            const search_input = document.getElementById("search-input");
+
+            let url = "";
+            let url_params = new URLSearchParams();
+            url_params.append("offset", offset);
+            url_params.append("limit", limit);
+
+            if (search_input.value) {
+                url_params.append("title", search_input.value);
+                url = `/listings/search/my?${url_params}`;
+                console.log("url", url);
+            }
+            else {
+                url = `/listings/my/selling/?${url_params}`;
+
+            }
+
+            const response = await fetch(url, {
+                method: "GET",
+                headers: {
+                    "Authorization": "Bearer " + token
+                },
+            });
+
+            if (!response.ok) {
+                console.log("resonse", response);
+                if (response.status === 401) {
+                    window.location.replace("/static/login.html");
+                }
+                container.textContent = "Failed to load listings";
+                return [];
+            }
+
+            const listings_page = await response.json();
+
+            return listings_page;
+        }
+
+        function clearListings() {
+            document.getElementById("my-listings").innerHTML = "";
+        }
+
+
+
+        function updateListingSoldStatus(li) {
+            let status_container = li.querySelector("span.listing-status");
+            status_container.textContent = li.listing.is_sold ? "Sold" : "Available";
+            status_container.style.color = li.listing.is_sold ? 'red' : '#0a0';
+
+            let status_button = li.querySelector("button.mark-listing");
+            status_button.textContent = li.listing.is_sold ? "Mark as available" : "Mark as sold";
+
+        }
+        async function loadListings(page_number, refresh_pagination) {
+            const LIMIT = 10;
+            clearListings();
+
+            const ListingButtonType = {
+                VIEW: "View",
+                EDIT: "Edit",
+                DELETE: "Delete",
+                MARK_STATUS: "MarkStatus"
+            };
+
+            function createListingButton(listing, type) {
+                let button = document.createElement("button");
+                button.dataset.listingId = listing.id;
+                button.classList.add("listing-button");
+
+                switch (type) {
+                    case ListingButtonType.VIEW:
+                        button.textContent = "View";
+                        button.classList.add("view-listing");
+                        break;
+                    case ListingButtonType.DELETE:
+                        button.textContent = "Delete";
+                        button.classList.add("delete-listing");
+                        break;
+                    case ListingButtonType.EDIT:
+                        button.textContent = "Edit";
+                        button.classList.add("edit-listing");
+                        break;
+                    case ListingButtonType.MARK_STATUS:
+                        button.classList.add("mark-listing");
+                        break;
+                }
+                return button;
+
+            }
+
+            function createListingThumbnail(listing) {
+
+                let thumbnail = document.createElement("img");
+                thumbnail.classList.add("listing-thumbnail");
+                if (listing.images.length > 0) {
+                    thumbnail.src = listing.images[0].url;
+                }
+
+                return thumbnail
+            }
+
+            function createListingTitle(listing) {
+
+                const title_container = document.createElement("span");
+                title_container.textContent = listing.title + " - $" + listing.price;
+
+                return title_container;
+            }
+
+
+            function createListingStatus(listing) {
+                const listing_status_container = document.createElement("span");
+                listing_status_container.classList.add("listing-status");
+                return listing_status_container;
+            }
+
+            function storeListing(listing) {
+                localStorage.setItem(`listing${listing.id}`, JSON.stringify(listing));
+            }
+
+            const listings_page = await fetchListings((page_number - 1) * LIMIT, LIMIT);
+
+            const listings = listings_page.listings;
+            listings_total = listings_page.total;
+
+            if (refresh_pagination) {
+                buildPagesNav(listings_total, LIMIT);
+            }
+            let my_listings = document.getElementById("my-listings");
+            listings.forEach(listing => {
+                const li = document.createElement("li");
+                li.listing = listing;
+
+                li.classList.add("my-listing");
+
+                const listing_left = document.createElement("div");
+                listing_left.classList.add("listing-left");
+                li.append(listing_left);
+
+                const listing_middle = document.createElement("div");
+                listing_middle.classList.add("listing-middle");
+                li.append(listing_middle);
+
+                const listing_right = document.createElement("div");
+                listing_right.classList.add("listing-right");
+                li.append(listing_right);
+
+
+                storeListing(listing);
+                listing_left.append(createListingThumbnail(listing));
+                listing_middle.append(createListingTitle(listing));
+                listing_middle.append(createListingStatus(listing));
+                listing_right.append(createListingButton(listing, ListingButtonType.VIEW));
+                listing_right.append(createListingButton(listing, ListingButtonType.EDIT));
+                listing_right.append(createListingButton(listing, ListingButtonType.DELETE));
+                listing_middle.append(createListingButton(listing, ListingButtonType.MARK_STATUS));
+
+                updateListingSoldStatus(li);
+
+                my_listings.append(li);
+
+            });
+        }
+
+
+        function buildPagesNav(listings_total, listings_per_page) {
+            const pages_nav = document.getElementById("listings-pages-nav");
+            pages_nav.innerHTML = "";
+            const pages_count = Math.ceil(listings_total / listings_per_page);
+            for (let page = 1; page <= pages_count; page++) {
+                let span = document.createElement("span");
+                span.classList.add("pagination-page");
+                span.textContent = page;
+                span.dataset.page = page;
+                pages_nav.append(span);
+            }
+
+        }
+        function createListing() {
+            window.location.href = "./listing_creation.html";
+        }
+
+        function addPagesNavHandler() {
+            const pages_nav = document.getElementById("listings-pages-nav");
+            pages_nav.addEventListener("click", (event) => {
+                const target = event.target.closest("span.pagination-page");
+                if (!target || !pages_nav.contains(target)) {
+                    return;
+                }
+
+                loadListings(Number(target.dataset.page), false);
+            })
+        }
+
+        function addGlobalListingsHandler() {
+            let button = document.getElementById("global-listings-button");
+            button.addEventListener("click", (event) => {
+                window.location.href = "./global_listings.html";
+            });
+        }
+    </script>
+
+</body>
+
+</html>
