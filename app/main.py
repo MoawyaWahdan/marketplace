@@ -3,6 +3,7 @@ from app.db.database import create_db_and_tables
 from app.api.routes import users, listings, auth
 from contextlib import asynccontextmanager
 from fastapi.staticfiles import StaticFiles
+from fastapi.responses import RedirectResponse
 
 app = FastAPI(
     title="Marketplace API",
@@ -25,3 +26,8 @@ app.include_router(users.router)
 app.include_router(listings.router)
 
 app.mount("/static", StaticFiles(directory="app/static"), name="static")
+
+
+@app.get("/")
+def root():
+    return RedirectResponse(url="/static/login.html")
