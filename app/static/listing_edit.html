@@ -304,7 +304,7 @@
             const data = await response.json();
 
             if (response.ok) {
-                window.location.href = "/static/listings.html";
+                window.location.href = "/static/my_listings.html";
             } else {
                 if (response.status == 401) {
                     window.location.replace("/static/login.html");
