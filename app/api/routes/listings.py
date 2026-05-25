@@ -37,13 +37,11 @@ from app.schemas.listing import (
 )
 from app.models.listing_image import ListingImageDB
 from app.api.deps import UserDep, SessionDep
+from app.core.config import LISTINGS_IMAGES_PATH, LISTINGS_IMAGES_URL_PATH
 
 logger = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/listings", tags=["Listings"])
-
-IMAGES_PATH = "app/static/images/listing_images"
-IMAGES_URL_PATH = "/static/images/listing_images"
 
 
 def generate_image_name(client_image_name):
@@ -75,8 +73,9 @@ async def upload_listing_images(
     try:
         for file in images:
             image_name = generate_image_name(file.filename)
-            image_full_path = FilePath(IMAGES_PATH) / image_name
+            image_full_path = FilePath(LISTINGS_IMAGES_PATH) / image_name
             db_image = ListingImageDB(listing_id=listing_id, name=image_name)
+
             with open(image_full_path, "wb") as buffer:
                 content = await file.read()
                 buffer.write(content)
@@ -86,7 +85,7 @@ async def upload_listing_images(
             session.flush()
             images_public.append(
                 ListingImagePublic(
-                    id=db_image.id, url=f"{IMAGES_URL_PATH}/{image_name}"
+                    id=db_image.id, url=f"{LISTINGS_IMAGES_URL_PATH}/{image_name}"
                 )
             )
 
@@ -150,7 +149,9 @@ def get_listing_public(listing_db: ListingDB, images_db: list[ListingImageDB]):
     listing_public = ListingPublic(**listing_db.model_dump())
     for image_db in images_db:
         listing_public.images.append(
-            ListingImagePublic(id=image_db.id, url=f"{IMAGES_URL_PATH}/{image_db.name}")
+            ListingImagePublic(
+                id=image_db.id, url=f"{LISTINGS_IMAGES_URL_PATH}/{image_db.name}"
+            )
         )
     return listing_public
 
@@ -356,7 +357,7 @@ async def delete_listing(
     for id in images_ids:
         db_image = session.get(ListingImageDB, id)
         image_name = db_image.name
-        image_full_path = os.path.join(IMAGES_PATH, image_name)
+        image_full_path = os.path.join(LISTINGS_IMAGES_PATH, image_name)
         os.remove(image_full_path)
 
     session.exec(delete(ListingImageDB).where(ListingImageDB.listing_id == listing_id))
@@ -395,7 +396,7 @@ async def delete_listing_images(
     for id in images_ids:
         db_image = session.get(ListingImageDB, id)
         image_name = db_image.name
-        image_full_path = os.path.join(IMAGES_PATH, image_name)
+        image_full_path = os.path.join(LISTINGS_IMAGES_PATH, image_name)
         os.remove(image_full_path)
 
     session.exec(delete(ListingImageDB).where(ListingImageDB.listing_id == listing_id))

@@ -4,6 +4,8 @@ from app.api.routes import users, listings, auth
 from contextlib import asynccontextmanager
 from fastapi.staticfiles import StaticFiles
 from fastapi.responses import RedirectResponse
+from app.core.config import LISTINGS_IMAGES_PATH
+import os
 
 app = FastAPI(
     title="Marketplace API",
@@ -15,6 +17,7 @@ app = FastAPI(
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     create_db_and_tables()
+    os.makedirs(LISTINGS_IMAGES_PATH, exist_ok=True)
     yield
 
 

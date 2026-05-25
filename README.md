@@ -1,12 +1,21 @@
 <h1>Marketplace</h1>
 
+<h2>Live Demo</h2>
+
+<p>
+https://marketplace-1lnf.onrender.com/
+</p>
+
 <h2>Project Overview</h2>
 
 <p>
 This is a backend-focused marketplace application built using FastAPI.
-It provides user authentication, product listing management, and browsing functionality.
-The system demonstrates clean backend architecture with database integration,
-JWT-based authentication, and environment-based configuration.
+The project demonstrates backend API development, authentication,
+database integration, CRUD operations, and image uploads.
+
+Users can create accounts, authenticate using JWT tokens,
+create marketplace listings, upload listing images,
+and browse available products through a lightweight frontend interface.
 </p>
 
 <h2>Backend Technology</h2>
@@ -14,6 +23,7 @@ JWT-based authentication, and environment-based configuration.
 <ul>
   <li>FastAPI</li>
   <li>Python</li>
+  <li>SQLite</li>
 </ul>
 
 <h2>Frontend Technology</h2>
@@ -28,11 +38,26 @@ JWT-based authentication, and environment-based configuration.
 
 <ul>
   <li>User registration and authentication (JWT-based)</li>
-  <li>Create, update, and delete product listings</li>
+  <li>Create, update, and delete marketplace listings</li>
+  <li>Upload listing images</li>
   <li>Browse marketplace listings</li>
   <li>Secure password hashing</li>
-
+  <li>REST API endpoints</li>
 </ul>
+
+<h2>API Documentation</h2>
+
+<p>
+Swagger UI:
+</p>
+
+<pre>
+Local:
+http://127.0.0.1:8000/docs
+
+Deployed:
+https://marketplace-1lnf.onrender.com/docs
+</pre>
 
 <h2>Instructions to Run (Tested on Ubuntu)</h2>
 
@@ -85,10 +110,10 @@ Open in browser:
 </p>
 
 <pre>
-http://127.0.0.1:8000/static/login.html
+http://127.0.0.1:8000/
 </pre>
 
-<h2>Testing</h2>
+<h2>Run Tests</h2>
 
 <pre>
 pytest
@@ -99,4 +124,5 @@ pytest
 <ul>
   <li>The database starts empty.</li>
   <li>You must create an account before adding listings.</li>
+  <li>Uploaded images are stored locally.</li>
 </ul>
