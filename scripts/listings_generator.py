@@ -1,3 +1,5 @@
+"""
+
 from sqlmodel import create_engine, Session
 from app.models.listing import ListingDB, ListingCategory, ListingCondition
 import random
@@ -36,3 +38,5 @@ def generate_listings():
 
 if __name__ == "__main__":
     generate_listings()
+
+"""

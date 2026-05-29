@@ -1,14 +1,11 @@
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker, declarative_base
-
-DATABASE_URL = "postgresql+psycopg://postgres:123@127.0.0.1:5432/marketplace"
-
+from app.core.config import DATABASE_URL
 
 engine = create_engine(
     DATABASE_URL,
-    echo=True,
+    echo=False,
 )
-
 
 SessionLocal = sessionmaker(
     autocommit=False,
@@ -24,8 +21,5 @@ def create_db_and_tables():
 
 
 def get_session():
-    db = SessionLocal()
-    try:
+    with SessionLocal() as db:
         yield db
-    finally:
-        db.close()

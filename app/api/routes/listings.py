@@ -110,9 +110,13 @@ async def upload_listing_images(
     description="Get list of images_ids for given listing_id",
 )
 def get_listing_imgaes_ids(user: UserDep, session: SessionDep, listing_id: int):
-    return session.execute(
-        select(ListingImageDB.id).where(ListingImageDB.listing_id == listing_id)
-    ).all()
+    return (
+        session.execute(
+            select(ListingImageDB.id).where(ListingImageDB.listing_id == listing_id)
+        )
+        .scalars()
+        .all()
+    )
 
 
 @router.post(
@@ -132,8 +136,8 @@ async def create_listing(
     session.add(db_listing)
 
     try:
-        session.flush()
         session.commit()
+        session.refresh(db_listing)
     except IntegrityError as e:
         session.rollback()
         logger.exception("Database constraint error")
@@ -499,9 +503,7 @@ def search_all_listings(
     conditions = [ListingDB.title.ilike(f"%{word}%") for word in words]
 
     count = session.execute(
-        select(func.count(ListingDB.id)).where(
-            ListingDB.seller_id == user.id, *conditions
-        )
+        select(func.count(ListingDB.id)).where(*conditions)
     ).scalar()
 
     listings = (

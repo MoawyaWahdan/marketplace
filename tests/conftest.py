@@ -1,22 +1,34 @@
 import pytest
-from sqlmodel import create_engine, Session, SQLModel
+import os
+from sqlalchemy import create_engine
+from sqlalchemy.orm import sessionmaker
 from fastapi.testclient import TestClient
-
 from app.main import app
-from app.db.database import get_session
+from app.db.database import get_session, Base
+import logging
 
-test_engine = create_engine(
-    "sqlite:///test.db", connect_args={"check_same_thread": False}
+logging.getLogger("sqlalchemy.engine").setLevel(logging.WARNING)
+logging.getLogger("sqlalchemy.pool").setLevel(logging.WARNING)
+
+DATABASE_TEST_URL = os.getenv("DATABASE_TEST_URL")
+if not DATABASE_TEST_URL:
+    raise ValueError("DATABASE_TEST_URL is not set in environment variables")
+
+engine = create_engine(DATABASE_TEST_URL, echo=False)
+
+SessionLocal = sessionmaker(
+    autocommit=False,
+    autoflush=False,
+    bind=engine,
 )
 
-# Create tables once
-SQLModel.metadata.create_all(test_engine)
+
+Base.metadata.create_all(bind=engine)
 
 
-# REAL override function (NOT pytest fixture)
 def override_get_session():
-    with Session(test_engine) as session:
-        yield session
+    with SessionLocal() as db:
+        yield db
 
 
 app.dependency_overrides[get_session] = override_get_session
@@ -24,8 +36,8 @@ app.dependency_overrides[get_session] = override_get_session
 
 @pytest.fixture
 def session():
-    with Session(test_engine) as s:
-        yield s
+    with SessionLocal() as db:
+        yield db
 
 
 @pytest.fixture
@@ -35,8 +47,8 @@ def client():
 
 @pytest.fixture(autouse=True)
 def clean_db():
-    SQLModel.metadata.drop_all(test_engine)
-    SQLModel.metadata.create_all(test_engine)
+    Base.metadata.drop_all(bind=engine)
+    Base.metadata.create_all(bind=engine)
     yield
 
 

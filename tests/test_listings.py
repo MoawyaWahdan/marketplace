@@ -1,6 +1,6 @@
 from app.models.user import UserDB
 from app.models.listing import ListingDB, ListingCondition, ListingCategory
-from sqlmodel import select
+from sqlalchemy import select
 from fastapi import status
 
 
@@ -12,7 +12,7 @@ def test_create_listing(client, session):
     )
     assert response.status_code == 200
 
-    user = session.exec(select(UserDB).where(UserDB.username == "tempe")).first()
+    user = session.scalars(select(UserDB).where(UserDB.username == "tempe")).first()
 
     # Login
     response = client.post("/token", data={"username": "tempe", "password": "abc"})
@@ -46,7 +46,7 @@ def test_create_listing(client, session):
     assert listing_data["seller_id"] == user.id
 
     # DB verification
-    listing = session.exec(
+    listing = session.scalars(
         select(ListingDB).where(ListingDB.id == listing_data["id"])
     ).first()
 
@@ -75,7 +75,7 @@ def test_create_with_invalid_token(client, session):
 
     assert response.status_code == status.HTTP_401_UNAUTHORIZED
 
-    listing = session.exec(
+    listing = session.scalars(
         select(ListingDB).where(ListingDB.title == "6x9 rug")
     ).first()
 
@@ -95,7 +95,7 @@ def test_create_without_token(client, session):
     )
 
     assert response.status_code == status.HTTP_401_UNAUTHORIZED
-    listing = session.exec(
+    listing = session.scalars(
         select(ListingDB).where(ListingDB.title == "6x9 rug")
     ).first()
 

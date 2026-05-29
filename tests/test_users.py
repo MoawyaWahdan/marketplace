@@ -1,6 +1,5 @@
 from app.models.user import UserDB
-from sqlmodel import select
-from fastapi import status
+from sqlalchemy import select
 
 
 def test_create_user(client, session):
@@ -19,7 +18,7 @@ def test_create_user(client, session):
     assert data["username"] == "tempe"
     assert data["email"] == "tempe@gmail.com"
 
-    db_user = session.exec(select(UserDB).where(UserDB.username == "tempe")).first()
+    db_user = session.scalars(select(UserDB).where(UserDB.username == "tempe")).first()
 
     assert db_user is not None
 
@@ -37,7 +36,7 @@ def test_duplicate_username(client, session, user):
     assert response.status_code == 409
     assert "already exists" in response.json()["detail"]
 
-    db_user = session.exec(
+    db_user = session.scalars(
         select(UserDB).where(UserDB.email == "new_email@gmail.com")
     ).first()
 
@@ -58,12 +57,12 @@ def test_duplicate_email(client, session, user):
     assert "already exists" in response.json()["detail"]
 
     # original user still exists
-    original_user = session.exec(
+    original_user = session.scalars(
         select(UserDB).where(UserDB.username == user["username"])
     ).first()
     assert original_user is not None
 
-    new_user = session.exec(
+    new_user = session.scalars(
         select(UserDB).where(UserDB.username == "new_username")
     ).first()
     assert new_user is None

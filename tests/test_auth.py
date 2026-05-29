@@ -1,4 +1,3 @@
-from sqlmodel import select
 from fastapi import status
 
 

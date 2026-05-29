@@ -3,9 +3,6 @@ import jwt
 from pwdlib import PasswordHash
 from app.core.config import SECRET_KEY, ALGORITHM, ACCESS_TOKEN_EXPIRE_MINUTES
 
-if not SECRET_KEY:
-    raise ValueError("SECRET_KEY is not set in environment variables")
-
 password_hash = PasswordHash.recommended()
 DUMMY_HASH = password_hash.hash("dummypassword")
 
