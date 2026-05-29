@@ -1,23 +1,18 @@
 fastapi[standard]
 uvicorn[standard]
 
+sqlmodel
 sqlalchemy
+psycopg[binary]
 
 python-dotenv
-
 python-multipart
 
-python-jose[cryptography]
-passlib[bcrypt]
+pyjwt
+pwdlib[argon2]
 
 httpx
-
 email-validator
 
 pytest
 pytest-asyncio
-
-sqlmodel
-
-pyjwt
-pwdlib[argon2]

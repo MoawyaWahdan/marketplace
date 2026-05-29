@@ -3,8 +3,8 @@ from fastapi import Depends, HTTPException, status
 from fastapi.security import OAuth2PasswordBearer
 import jwt
 from jwt.exceptions import InvalidTokenError
-from sqlmodel import Session, select
-
+from sqlalchemy.orm import Session
+from sqlalchemy import select
 from app.db.database import get_session
 from app.models.user import UserDB
 from app.core.security import SECRET_KEY, ALGORITHM
@@ -29,7 +29,11 @@ def get_current_user(
     except InvalidTokenError:
         raise credentials_exception
 
-    user = session.exec(select(UserDB).where(UserDB.username == username)).first()
+    user = (
+        session.execute(select(UserDB).where(UserDB.username == username))
+        .scalars()
+        .first()
+    )
 
     if not user:
         raise credentials_exception

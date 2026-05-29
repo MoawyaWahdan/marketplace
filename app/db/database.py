@@ -1,15 +1,31 @@
-from sqlmodel import SQLModel, create_engine, Session
+from sqlalchemy import create_engine
+from sqlalchemy.orm import sessionmaker, declarative_base
 
-sqlite_url = "sqlite:///database.db"
+DATABASE_URL = "postgresql+psycopg://postgres:123@127.0.0.1:5432/marketplace"
 
-connect_args = {"check_same_thread": False}
-engine = create_engine(sqlite_url, connect_args=connect_args)
+
+engine = create_engine(
+    DATABASE_URL,
+    echo=True,
+)
+
+
+SessionLocal = sessionmaker(
+    autocommit=False,
+    autoflush=False,
+    bind=engine,
+)
+
+Base = declarative_base()
 
 
 def create_db_and_tables():
-    SQLModel.metadata.create_all(engine)
+    Base.metadata.create_all(bind=engine)
 
 
 def get_session():
-    with Session(engine) as session:
-        yield session
+    db = SessionLocal()
+    try:
+        yield db
+    finally:
+        db.close()

@@ -1,6 +1,7 @@
 from pydantic import BaseModel, Field
 from app.models.listing import ListingCategory, ListingCondition
 from typing import Annotated
+from pydantic import ConfigDict
 
 
 class ListingCreate(BaseModel):
@@ -23,6 +24,8 @@ class ListingPublic(ListingCreate):
     buyer_id: int | None = None
     is_sold: bool
     images: list[ListingImagePublic] = Field(default_factory=list)
+
+    model_config = ConfigDict(from_attributes=True)
 
 
 class ListingPage(BaseModel):

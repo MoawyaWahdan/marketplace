@@ -106,7 +106,7 @@
         <button id="seller-dashboard-button">Seller dashboard</button>
     </div>
     <div id="listings-container">
-        <input type="text" id="search-input" placeholder="Search your listings">
+        <input type="text" id="search-input" placeholder="Search listings">
         <div id="listings"></div>
         <div id="listings-pages-nav"></div>
     </div>
@@ -245,11 +245,15 @@
 
             const listings = listings_page.listings;
             listings_total = listings_page.total;
+            let listings_container = document.getElementById("listings");
+            if (listings_total === 0) {
+                listings_container.innerHTML = "No listing found";
+            }
 
             if (refresh_pagination) {
                 buildPagesNav(listings_total, LIMIT);
             }
-            let listings_container = document.getElementById("listings");
+
             listings.forEach(listing => {
                 const li = document.createElement("li");
                 listings_container.append(li);

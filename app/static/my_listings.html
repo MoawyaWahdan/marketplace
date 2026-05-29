@@ -361,11 +361,15 @@
 
             const listings = listings_page.listings;
             listings_total = listings_page.total;
+            let my_listings = document.getElementById("my-listings");
+            if (listings_total === 0) {
+                my_listings.innerHTML = "No listing found";
+            }
 
             if (refresh_pagination) {
                 buildPagesNav(listings_total, LIMIT);
             }
-            let my_listings = document.getElementById("my-listings");
+
             listings.forEach(listing => {
                 const li = document.createElement("li");
                 li.listing = listing;

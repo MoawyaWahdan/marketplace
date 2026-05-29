@@ -1,17 +1,24 @@
-from sqlmodel import SQLModel, Field
-from pydantic import EmailStr
-from sqlalchemy import UniqueConstraint
+from sqlalchemy import Integer, String
+from sqlalchemy.orm import Mapped, mapped_column
+
+from app.db.database import Base
 
 
-class UserBase(SQLModel):
-    username: str = Field(..., min_length=3, max_length=50)
-    email: EmailStr
+class UserDB(Base):
+    __tablename__ = "users"
 
-
-class UserDB(UserBase, table=True):
-    id: int | None = Field(default=None, primary_key=True)
-    hashed_password: str
-    __table_args__ = (
-        UniqueConstraint("username"),
-        UniqueConstraint("email"),
+    id: Mapped[int] = mapped_column(
+        primary_key=True,
+        index=True,
     )
+
+    username: Mapped[str] = mapped_column(
+        String(50),
+        unique=True,
+    )
+
+    email: Mapped[str] = mapped_column(
+        unique=True,
+    )
+
+    hashed_password: Mapped[str] = mapped_column()

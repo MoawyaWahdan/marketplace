@@ -19,9 +19,8 @@ import logging
 import uuid
 
 
-from sqlmodel import select, delete
 from sqlalchemy.exc import IntegrityError
-from sqlalchemy import and_, func
+from sqlalchemy import and_, func, select, delete
 from typing import Annotated
 from pydantic import Field
 
@@ -111,7 +110,7 @@ async def upload_listing_images(
     description="Get list of images_ids for given listing_id",
 )
 def get_listing_imgaes_ids(user: UserDep, session: SessionDep, listing_id: int):
-    return session.exec(
+    return session.execute(
         select(ListingImageDB.id).where(ListingImageDB.listing_id == listing_id)
     ).all()
 
@@ -146,7 +145,7 @@ async def create_listing(
 
 
 def get_listing_public(listing_db: ListingDB, images_db: list[ListingImageDB]):
-    listing_public = ListingPublic(**listing_db.model_dump())
+    listing_public = ListingPublic.model_validate(listing_db)
     for image_db in images_db:
         listing_public.images.append(
             ListingImagePublic(
@@ -159,9 +158,13 @@ def get_listing_public(listing_db: ListingDB, images_db: list[ListingImageDB]):
 def get_listings_public(listings_db: list[ListingDB], session):
     listings_public = []
     for listing_db in listings_db:
-        images_db = session.exec(
-            select(ListingImageDB).where(ListingImageDB.listing_id == listing_db.id)
-        ).all()
+        images_db = (
+            session.execute(
+                select(ListingImageDB).where(ListingImageDB.listing_id == listing_db.id)
+            )
+            .scalars()
+            .all()
+        )
         listings_public.append(get_listing_public(listing_db, images_db))
     return listings_public
 
@@ -179,15 +182,19 @@ async def get_all_listings(
     limit: Annotated[int, Query(ge=10, le=100)] = 10,
 ):
     logger.info("get_all_listings called")
-    count = session.exec(select(func.count(ListingDB.id))).one()
+    count = session.execute(select(func.count(ListingDB.id))).scalar()
 
-    listings_db = session.exec(
-        select(ListingDB)
-        .where(ListingDB.is_sold == False)
-        .order_by(ListingDB.id.desc())
-        .offset(offset)
-        .limit(limit)
-    ).all()
+    listings_db = (
+        session.execute(
+            select(ListingDB)
+            .where(ListingDB.is_sold == False)
+            .order_by(ListingDB.id.desc())
+            .offset(offset)
+            .limit(limit)
+        )
+        .scalars()
+        .all()
+    )
 
     public_listings = get_listings_public(listings_db, session)
     return {"listings": public_listings, "total": count}
@@ -206,16 +213,20 @@ async def get_my_selling_listings(
     limit: Annotated[int, Query(ge=10, le=100)] = 10,
 ):
 
-    count = session.exec(
+    count = session.execute(
         select(func.count(ListingDB.id)).where(ListingDB.seller_id == user.id)
-    ).one()
-    listings = session.exec(
-        select(ListingDB)
-        .where(ListingDB.seller_id == user.id)
-        .order_by(ListingDB.id.desc())
-        .offset(offset)
-        .limit(limit)
-    ).all()
+    ).scalar()
+    listings = (
+        session.execute(
+            select(ListingDB)
+            .where(ListingDB.seller_id == user.id)
+            .order_by(ListingDB.id.desc())
+            .offset(offset)
+            .limit(limit)
+        )
+        .scalars()
+        .all()
+    )
 
     public_listings = get_listings_public(listings, session)
 
@@ -224,9 +235,11 @@ async def get_my_selling_listings(
 
 async def get_my_purchases(user: UserDep, session: SessionDep):
 
-    listings = session.exec(
-        select(ListingDB).where(ListingDB.buyer_id == user.id)
-    ).all()
+    listings = (
+        session.execute(select(ListingDB).where(ListingDB.buyer_id == user.id))
+        .scalars()
+        .all()
+    )
 
     return listings
 
@@ -270,9 +283,13 @@ async def get_listing(listing_id: int, user: UserDep, session: SessionDep):
             status_code=status.HTTP_404_NOT_FOUND, detail="Listing not found"
         )
 
-    images_db = session.exec(
-        select(ListingImageDB).where(ListingImageDB.listing_id == listing_id)
-    ).all()
+    images_db = (
+        session.execute(
+            select(ListingImageDB).where(ListingImageDB.listing_id == listing_id)
+        )
+        .scalars()
+        .all()
+    )
 
     return get_listing_public(listing_db, images_db)
 
@@ -305,13 +322,18 @@ async def update_listing(
 
     # Duplicate title check (if title is being updated)
     if listing_update.title is not None:
-        listing = session.exec(
-            select(ListingDB).where(
-                and_(
-                    ListingDB.title == listing_update.title, ListingDB.id != listing_id
+        listing = (
+            session.execute(
+                select(ListingDB).where(
+                    and_(
+                        ListingDB.title == listing_update.title,
+                        ListingDB.id != listing_id,
+                    )
                 )
             )
-        ).first()
+            .scalars()
+            .first()
+        )
         if listing is not None:
             raise HTTPException(
                 status_code=400, detail="A listing with this title already exists"
@@ -319,7 +341,8 @@ async def update_listing(
 
     # Perform the update
     update_data = listing_update.model_dump(exclude_unset=True)
-    db_listing.sqlmodel_update(update_data)
+    for key, value in update_data.items():
+        setattr(db_listing, key, value)
     session.add(db_listing)
     session.commit()
     session.refresh(db_listing)
@@ -351,16 +374,23 @@ async def delete_listing(
         )
 
     # 1- delete the listing images
-    images_ids = session.exec(
-        select(ListingImageDB.id).where(ListingImageDB.listing_id == listing_id)
-    ).all()
+    images_ids = (
+        session.execute(
+            select(ListingImageDB.id).where(ListingImageDB.listing_id == listing_id)
+        )
+        .scalars()
+        .all()
+    )
     for id in images_ids:
         db_image = session.get(ListingImageDB, id)
         image_name = db_image.name
         image_full_path = os.path.join(LISTINGS_IMAGES_PATH, image_name)
-        os.remove(image_full_path)
+        if os.path.exists(image_full_path):
+            os.remove(image_full_path)
 
-    session.exec(delete(ListingImageDB).where(ListingImageDB.listing_id == listing_id))
+    session.execute(
+        delete(ListingImageDB).where(ListingImageDB.listing_id == listing_id)
+    )
 
     # 2- delete the listing
     session.delete(listing)
@@ -390,16 +420,23 @@ async def delete_listing_images(
             detail="You can only delete your own listings",
         )
 
-    images_ids = session.exec(
-        select(ListingImageDB.id).where(ListingImageDB.listing_id == listing_id)
-    ).all()
+    images_ids = (
+        session.execute(
+            select(ListingImageDB.id).where(ListingImageDB.listing_id == listing_id)
+        )
+        .scalars()
+        .all()
+    )
     for id in images_ids:
         db_image = session.get(ListingImageDB, id)
         image_name = db_image.name
         image_full_path = os.path.join(LISTINGS_IMAGES_PATH, image_name)
-        os.remove(image_full_path)
+        if os.path.exists(image_full_path):
+            os.remove(image_full_path)
 
-    session.exec(delete(ListingImageDB).where(ListingImageDB.listing_id == listing_id))
+    session.execute(
+        delete(ListingImageDB).where(ListingImageDB.listing_id == listing_id)
+    )
 
     session.commit()
 
@@ -421,19 +458,23 @@ def search_my_listings(
     words = title.strip().split()
     conditions = [ListingDB.title.ilike(f"%{word}%") for word in words]
 
-    count = session.exec(
+    count = session.execute(
         select(func.count(ListingDB.id)).where(
             ListingDB.seller_id == user.id, *conditions
         )
-    ).one()
+    ).scalar()
 
-    listings = session.exec(
-        select(ListingDB)
-        .where(ListingDB.seller_id == user.id, *conditions)
-        .order_by(ListingDB.id.desc())
-        .offset(offset)
-        .limit(limit)
-    ).all()
+    listings = (
+        session.execute(
+            select(ListingDB)
+            .where(ListingDB.seller_id == user.id, *conditions)
+            .order_by(ListingDB.id.desc())
+            .offset(offset)
+            .limit(limit)
+        )
+        .scalars()
+        .all()
+    )
 
     listings_public = get_listings_public(listings, session)
 
@@ -457,19 +498,23 @@ def search_all_listings(
     words = title.strip().split()
     conditions = [ListingDB.title.ilike(f"%{word}%") for word in words]
 
-    count = session.exec(
+    count = session.execute(
         select(func.count(ListingDB.id)).where(
             ListingDB.seller_id == user.id, *conditions
         )
-    ).one()
+    ).scalar()
 
-    listings = session.exec(
-        select(ListingDB)
-        .where(*conditions)
-        .order_by(ListingDB.id.desc())
-        .offset(offset)
-        .limit(limit)
-    ).all()
+    listings = (
+        session.execute(
+            select(ListingDB)
+            .where(*conditions)
+            .order_by(ListingDB.id.desc())
+            .offset(offset)
+            .limit(limit)
+        )
+        .scalars()
+        .all()
+    )
 
     listings_public = get_listings_public(listings, session)
 
