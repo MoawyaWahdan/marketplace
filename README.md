@@ -23,7 +23,7 @@ and browse available products through a lightweight frontend interface.
 <ul>
   <li>FastAPI</li>
   <li>Python</li>
-  <li>SQLite</li>
+  <li>PostgreSQL (migrated from SQLite)</li>
 </ul>
 
 <h2>Frontend Technology</h2>
