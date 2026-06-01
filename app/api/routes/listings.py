@@ -4,25 +4,17 @@ from fastapi import (
     HTTPException,
     status,
     Path,
-    BackgroundTasks,
     UploadFile,
     File,
-    Request,
-    Form,
     Query,
 )
-import asyncio
-from pathlib import Path as FilePath
-import time
-import os
+
 import logging
-import uuid
 
 
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy import and_, func, select, delete
 from typing import Annotated
-from pydantic import Field
 
 from app.db.database import get_session
 from app.models.listing import ListingDB
@@ -36,16 +28,11 @@ from app.schemas.listing import (
 )
 from app.models.listing_image import ListingImageDB
 from app.api.deps import UserDep, SessionDep
-from app.core.config import LISTINGS_IMAGES_PATH, LISTINGS_IMAGES_URL_PATH
+from app.utils.utils import upload_image_to_s3, get_image_url, delete_image_from_s3
 
 logger = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/listings", tags=["Listings"])
-
-
-def generate_image_name(client_image_name):
-    ext = FilePath(client_image_name).suffix
-    return f"{uuid.uuid4()}{ext}"
 
 
 @router.post(
@@ -61,7 +48,7 @@ async def upload_listing_images(
     images: list[UploadFile],
 ):
     images_public = []
-    saved_images = []
+    uploaded_images = []
 
     listing = session.get(ListingDB, listing_id)
     if not listing:
@@ -71,33 +58,28 @@ async def upload_listing_images(
 
     try:
         for file in images:
-            image_name = generate_image_name(file.filename)
-            image_full_path = FilePath(LISTINGS_IMAGES_PATH) / image_name
+            image_name = upload_image_to_s3(file)
             db_image = ListingImageDB(listing_id=listing_id, name=image_name)
 
-            with open(image_full_path, "wb") as buffer:
-                content = await file.read()
-                buffer.write(content)
-
-            saved_images.append(image_full_path)
             session.add(db_image)
             session.flush()
+
             images_public.append(
-                ListingImagePublic(
-                    id=db_image.id, url=f"{LISTINGS_IMAGES_URL_PATH}/{image_name}"
-                )
+                ListingImagePublic(id=db_image.id, url=get_image_url(image_name))
             )
+
+            uploaded_images.append(image_name)
 
         session.commit()
 
     except Exception as e:
-        logger.exception("Error while saving image")
-        for image_path in saved_images:
-            if os.path.exists(image_path):
-                os.remove(image_path)
+        logger.exception("Error while uploading image")
+        for image in uploaded_images:
+            delete_image_from_s3(image)
+
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail="Couldn't save images",
+            detail="Couldn't upload images",
         )
 
     return images_public
@@ -152,9 +134,7 @@ def get_listing_public(listing_db: ListingDB, images_db: list[ListingImageDB]):
     listing_public = ListingPublic.model_validate(listing_db)
     for image_db in images_db:
         listing_public.images.append(
-            ListingImagePublic(
-                id=image_db.id, url=f"{LISTINGS_IMAGES_URL_PATH}/{image_db.name}"
-            )
+            ListingImagePublic(id=image_db.id, url=get_image_url(image_db.name))
         )
     return listing_public
 
@@ -388,9 +368,7 @@ async def delete_listing(
     for id in images_ids:
         db_image = session.get(ListingImageDB, id)
         image_name = db_image.name
-        image_full_path = os.path.join(LISTINGS_IMAGES_PATH, image_name)
-        if os.path.exists(image_full_path):
-            os.remove(image_full_path)
+        delete_image_from_s3(image_name)
 
     session.execute(
         delete(ListingImageDB).where(ListingImageDB.listing_id == listing_id)
@@ -434,9 +412,7 @@ async def delete_listing_images(
     for id in images_ids:
         db_image = session.get(ListingImageDB, id)
         image_name = db_image.name
-        image_full_path = os.path.join(LISTINGS_IMAGES_PATH, image_name)
-        if os.path.exists(image_full_path):
-            os.remove(image_full_path)
+        delete_image_from_s3(image_name)
 
     session.execute(
         delete(ListingImageDB).where(ListingImageDB.listing_id == listing_id)
