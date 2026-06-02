@@ -1,7 +1,10 @@
 from fastapi import UploadFile
 import uuid
 import boto3
-import os
+import logging
+
+logger = logging.getLogger(__name__)
+
 from app.core.config import (
     S3_BUCKET_NAME,
     AWS_ACCESS_KEY_ID,
@@ -36,8 +39,17 @@ def get_image_url(key: str) -> str:
     return f"https://{S3_BUCKET_NAME}.s3.{AWS_REGION}.amazonaws.com/{key}"
 
 
-def delete_image_from_s3(object_key: str):
-    s3_client.delete_object(
-        Bucket=S3_BUCKET_NAME,
-        Key=object_key,
-    )
+def delete_image_from_s3(object_key: str) -> bool:
+    try:
+        s3_client.delete_object(
+            Bucket=S3_BUCKET_NAME,
+            Key=object_key,
+        )
+        return True
+
+    except Exception:
+        logger.exception(
+            "Failed to delete S3 image: %s",
+            object_key,
+        )
+        return False
