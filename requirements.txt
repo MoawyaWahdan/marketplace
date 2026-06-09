@@ -17,3 +17,5 @@ pytest
 pytest-asyncio
 
 boto3
+
+alembic

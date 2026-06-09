@@ -5,7 +5,6 @@ from fastapi import (
     status,
     Path,
     UploadFile,
-    File,
     Query,
 )
 
@@ -58,17 +57,17 @@ async def upload_listing_images(
 
     try:
         for file in images:
-            image_name = upload_image_to_s3(file)
-            db_image = ListingImageDB(listing_id=listing_id, name=image_name)
+            object_key = upload_image_to_s3(file)
+            db_image = ListingImageDB(listing_id=listing_id, object_key=object_key)
 
             session.add(db_image)
             session.flush()
 
             images_public.append(
-                ListingImagePublic(id=db_image.id, url=get_image_url(image_name))
+                ListingImagePublic(id=db_image.id, url=get_image_url(object_key))
             )
 
-            uploaded_images.append(image_name)
+            uploaded_images.append(object_key)
 
         session.commit()
 
@@ -134,7 +133,7 @@ def get_listing_public(listing_db: ListingDB, images_db: list[ListingImageDB]):
     listing_public = ListingPublic.model_validate(listing_db)
     for image_db in images_db:
         listing_public.images.append(
-            ListingImagePublic(id=image_db.id, url=get_image_url(image_db.name))
+            ListingImagePublic(id=image_db.id, url=get_image_url(image_db.object_key))
         )
     return listing_public
 
@@ -367,8 +366,8 @@ async def delete_listing(
     )
     for id in images_ids:
         db_image = session.get(ListingImageDB, id)
-        image_name = db_image.name
-        delete_image_from_s3(image_name)
+        object_key = db_image.object_key
+        delete_image_from_s3(object_key)
 
     session.execute(
         delete(ListingImageDB).where(ListingImageDB.listing_id == listing_id)
@@ -411,8 +410,8 @@ async def delete_listing_images(
     )
     for id in images_ids:
         db_image = session.get(ListingImageDB, id)
-        image_name = db_image.name
-        delete_image_from_s3(image_name)
+        object_key = db_image.object_key
+        delete_image_from_s3(object_key)
 
     session.execute(
         delete(ListingImageDB).where(ListingImageDB.listing_id == listing_id)
