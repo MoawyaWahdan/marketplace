@@ -8,4 +8,4 @@ class ListingImageDB(Base):
 
     id: Mapped[int] = mapped_column(primary_key=True)
     listing_id: Mapped[int] = mapped_column(ForeignKey("listings.id"))
-    name: Mapped[str] = mapped_column()
+    object_key: Mapped[str] = mapped_column()
