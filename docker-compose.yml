@@ -1,0 +1,65 @@
+# Local development environment for the Marketplace API
+# Runs FastAPI and an isolated PostgreSQL database using Docker.
+
+services:
+
+  # FastAPI application service
+  app:
+    # Build the application image using the Dockerfile in this directory
+    build: .
+
+    # Map host port 8000 to container port 8000
+    # Allows access through http://localhost:8000
+    ports:
+      - "8000:8000"
+
+    # Load application configuration and secrets
+    # DATABASE_URL points to the local Docker PostgreSQL service
+    env_file:
+      - .env
+
+    # Ensure PostgreSQL container starts before the API container
+    depends_on:
+      db:
+        condition: service_healthy
+
+    # Mount the project into the container so code changes are reflected immediately
+    volumes:
+      - .:/app
+
+    command: ["sh", "-c", "alembic upgrade head && uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload"]
+  
+  # Isolated PostgreSQL database for local development and testing
+  # This database is separate from the production Neon database
+  db:
+    # Official PostgreSQL image
+    image: postgres:16-alpine
+
+    # Initialize the local development database
+    environment:
+      POSTGRES_USER: marketplace
+      POSTGRES_PASSWORD: marketplace
+      POSTGRES_DB: marketplace
+
+    # Health check to ensure PostgreSQL is fully initialized before the FastAPI app connects
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U marketplace -d marketplace"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  # Allow connections to the local PostgreSQL instance from the host machine
+    ports:
+      - "5433:5432"
+
+    volumes:
+      # Persist database data between container restarts
+      - postgres_data:/var/lib/postgresql/data
+
+      # Run initialization SQL the first time PostgreSQL creates the database
+      - ./docker/postgres/init.sql:/docker-entrypoint-initdb.d/init.sql
+
+# Named Docker volume managed by Docker
+# Prevents losing local database data when containers restart
+volumes:
+  postgres_data:
