@@ -1,21 +1,22 @@
 # Use a lightweight Python image
 FROM python:3.12-slim
 
-# Prevents Python from buffering stdout/stderr (so logs show up immediately)
+# Prevent Python from buffering logs
 ENV PYTHONUNBUFFERED=1
 
-# Set the working directory inside the container
+# Set working directory inside container
 WORKDIR /app
 
-# Copy requirements first so Docker can reuse the dependency layer
+# Install dependencies first for better Docker caching
 COPY requirements.txt .
-RUN pip install -r requirements.txt
 
-# Copy application source code
+RUN pip install --no-cache-dir -r requirements.txt
+
+# Copy application code
 COPY . .
 
-# Application listens on port 8000
+# FastAPI runs on port 8000
 EXPOSE 8000
 
-# Apply migrations and start FastAPI
+# Run migrations then start API server
 CMD ["sh", "-c", "alembic upgrade head && uvicorn app.main:app --host 0.0.0.0 --port 8000"]
