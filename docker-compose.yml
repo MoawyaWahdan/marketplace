@@ -20,7 +20,8 @@ services:
 
     # Ensure PostgreSQL container starts before the API container
     depends_on:
-      - db
+      db:
+        condition: service_healthy
 
     # Mount the project into the container so code changes are reflected immediately
     volumes:
@@ -40,14 +41,22 @@ services:
       POSTGRES_PASSWORD: marketplace
       POSTGRES_DB: marketplace
 
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U marketplace -d marketplace"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
   # Allow connections to the local PostgreSQL instance from the host machine
     ports:
       - "5433:5432"
 
-    # Persist database data between container restarts
     volumes:
+      # Persist database data between container restarts
       - postgres_data:/var/lib/postgresql/data
 
+      # Run initialization SQL the first time PostgreSQL creates the database
+      - ./docker/postgres/init.sql:/docker-entrypoint-initdb.d/init.sql
 
 # Named Docker volume managed by Docker
 # Prevents losing local database data when containers restart
