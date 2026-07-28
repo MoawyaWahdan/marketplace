@@ -1,126 +1,149 @@
-<h1>Marketplace</h1>
+# Marketplace
 
-<h2>Live Demo</h2>
+## Live Demo
 
-<p>
-https://marketplace-1lnf.onrender.com/
-</p>
+**Application:** https://marketplace-docker-c5ha.onrender.com/
 
-<h2>Project Overview</h2>
+**API Documentation (Swagger):**
+https://marketplace-docker-c5ha.onrender.com/docs
 
-<p>
-Backend-focused marketplace application built using FastAPI.
-The project demonstrates backend API development, authentication,
-database design, CRUD operations, and cloud-based image storage.
+---
 
-Users can register, authenticate using JWT tokens,
-create marketplace listings, upload listing images,
-and browse available products through a lightweight frontend interface.
-</p>
+# Project Overview
 
-<h2>Backend Technology</h2>
+Marketplace is a backend-focused web application built with **FastAPI**.
 
-<ul>
-  <li>FastAPI</li>
-  <li>Python</li>
-  <li>PostgreSQL (migrated from SQLite)</li>
-  <li>SQLAlchemy ORM</li>
-  <li>JWT Authentication</li>
-</ul>
+The project demonstrates modern backend development practices, including RESTful API development, JWT authentication, PostgreSQL database management with Alembic migrations, Dockerized local development and deployment, CRUD operations, and Amazon S3 integration for image storage.
 
-<h2>Cloud & Storage</h2>
+Users can:
 
-<ul>
-  <li>Amazon S3 (image upload, retrieval, deletion)</li>
-</ul>
+* Register and authenticate
+* Create marketplace listings
+* Upload listing images
+* Edit and delete their listings
+* Browse available products
 
-<h2>Frontend Technology</h2>
+---
 
-<ul>
-  <li>HTML</li>
-  <li>CSS</li>
-  <li>JavaScript</li>
-</ul>
+# Technologies
 
-<h2>Features</h2>
+## Backend
 
-<ul>
-  <li>User registration and authentication (JWT-based)</li>
-  <li>Create, update, and delete marketplace listings</li>
-  <li>Upload and manage listing images</li>
-  <li>Browse marketplace listings</li>
-  <li>Secure password hashing</li>
-  <li>RESTful API endpoints</li>
-  <li>Cloud-based image storage with S3</li>
-</ul>
+* FastAPI
+* Python
+* PostgreSQL
+* SQLAlchemy ORM
+* Alembic
+* JWT Authentication
 
-<h2>API Documentation</h2>
+## DevOps & Deployment
 
-<p>Swagger UI:</p>
+* Docker
+* Docker Compose
+* Render
+* Neon PostgreSQL
 
-<pre>
-Local:
-http://127.0.0.1:8000/docs
+## Cloud Storage
 
-Deployed:
-https://marketplace-1lnf.onrender.com/docs
-</pre>
+* Amazon S3
 
-<h2>Instructions to Run (Tested on Ubuntu)</h2>
+## Frontend
 
-<h3>1. Clone the repository</h3>
+* HTML
+* CSS
+* JavaScript
 
-<pre>
-git clone repo_url
+---
+
+# Features
+
+* User registration
+* JWT-based authentication
+* Secure password hashing
+* Create, update, and delete marketplace listings
+* Upload and manage listing images
+* Browse marketplace listings
+* RESTful API
+* Database migrations using Alembic
+* Dockerized local development
+* Docker deployment on Render
+
+---
+
+# Getting Started
+
+## 1. Clone the repository
+
+```bash
+git clone <repository-url>
 cd marketplace
-</pre>
+```
 
-<h3>2. Create virtual environment and activate it</h3>
+## 2. Create the environment file
 
-<pre>
-python3 -m venv .venv
-source .venv/bin/activate
-</pre>
+```bash
+cp .env.example .env
+```
 
-<h3>3. Install dependencies</h3>
+Update the required values in `.env`.
 
-<pre>
-pip install -r requirements.txt
-</pre>
+## 3. Start the application
 
-<h3>4. Create environment variables</h3>
+```bash
+docker compose up --build
+```
 
-<pre>
-touch .env
+The application will automatically:
 
-SECRET_KEY=your_generated_secret_key
-DATABASE_URL=your_postgres_url
-AWS_ACCESS_KEY_ID=your_key
-AWS_SECRET_ACCESS_KEY=your_secret
-AWS_REGION=us-east-2
-S3_BUCKET_NAME=your_bucket_name
-</pre>
+* Start PostgreSQL
+* Apply Alembic migrations
+* Start the FastAPI server
 
-<h3>5. Run the application</h3>
+---
 
-<pre>
-./run.sh
-</pre>
+## 4. Open the application
 
-<h3>6. Access the application</h3>
+Application:
 
-<pre>
-http://127.0.0.1:8000/
-</pre>
+```
+http://localhost:8000
+```
 
-<h2>Run Tests</h2>
+Swagger UI:
 
-<pre>
-pytest
-</pre>
+```
+http://localhost:8000/docs
+```
 
-<h2>Notes</h2>
+---
 
-<ul>
-  <li>You must create an account before adding listings.</li>
-</ul>
+## Stop the application
+
+```bash
+docker compose down
+```
+
+---
+
+# Running Tests
+
+Run the test suite inside the application container:
+
+```bash
+docker compose exec app pytest
+```
+
+---
+
+# Deployment
+
+The application is deployed on **Render** using **Docker** and connects to a managed **Neon PostgreSQL** database.
+
+---
+
+# Notes
+
+* Create an account before creating listings.
+* Docker Compose creates the local PostgreSQL environment automatically.
+* Alembic migrations are applied automatically when the application starts.
+* Listing images are stored in Amazon S3.
