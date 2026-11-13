@@ -1,4 +1,16 @@
 from enum import Enum
+from sqlalchemy import (
+    String,
+    UniqueConstraint,
+    Numeric,
+    Enum as SQLEnum,
+    ForeignKey,
+    func,
+)
+from sqlalchemy.orm import Mapped, mapped_column
+from app.db.database import Base
+from decimal import Decimal
+from datetime import datetime
 
 
 class ListingCategory(str, Enum):
@@ -13,13 +25,6 @@ class ListingCondition(str, Enum):
     USED_LIKE_NEW = "Used like new"
     USED_GOOD = "Used good"
     USED_FAIR = "Used fair"
-
-
-from sqlalchemy import String, UniqueConstraint, Numeric
-from sqlalchemy.orm import Mapped, mapped_column
-from app.db.database import Base
-from sqlalchemy import Enum as SQLEnum, ForeignKey
-from decimal import Decimal
 
 
 class ListingDB(Base):
@@ -37,5 +42,13 @@ class ListingDB(Base):
         ForeignKey("users.id"),
     )
     sku: Mapped[str | None] = mapped_column()
+
+    created_at: Mapped[datetime] = mapped_column(
+        server_default=func.now(), nullable=False
+    )
+
+    updated_at: Mapped[datetime] = mapped_column(
+        server_default=func.now(), onupdate=func.now(), nullable=False
+    )
 
     __table_args__ = (UniqueConstraint("seller_id", "title"),)
