@@ -9,9 +9,15 @@ class MessageDB(Base):
 
     id: Mapped[int] = mapped_column(primary_key=True)
 
-    chat_id: Mapped[int] = mapped_column(ForeignKey("chats.id"))
+    chat_id: Mapped[int] = mapped_column(
+        ForeignKey("chats.id", ondelete="CASCADE"),
+        nullable=False,
+        index=True,
+    )
 
-    sender_id: Mapped[int] = mapped_column(ForeignKey("users.id"))
+    sender_id: Mapped[int] = mapped_column(
+        ForeignKey("users.id"), index=True, nullable=False
+    )
 
     content: Mapped[str] = mapped_column(String(5000))
 

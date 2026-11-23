@@ -9,6 +9,8 @@ from app.db.database import Base
 from app.models.user import UserDB
 from app.models.listing import ListingDB
 from app.models.listing_image import ListingImageDB
+from app.models.chat import ChatDB
+from app.models.message import MessageDB
 
 # this is the Alembic Config object, which provides
 # access to the values within the .ini file in use.
